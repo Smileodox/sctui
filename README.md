@@ -230,6 +230,21 @@ All width math goes through `pad()`/`truncate()` in
 [`src/format.ts`](src/format.ts) instead of flex spacers: a flex spacer
 collapses to zero and lets text run together instead of clipping it.
 
+## Roadmap
+
+Rough order — driven by what users actually ask for:
+
+- **Savings plans tab** — rate, interval, next execution (`broker savings-plans`
+  is already on the allowlist)
+- **Transaction details** — `⏎` on a transaction opens `broker transaction details`
+- **News in the detail pane** — `broker security-news` per instrument
+- **Price alerts (read view)** — with distance-to-trigger
+- **Config file** — `~/.config/sctui` for refresh, tab, locale, theme
+- **CSV/JSON export** — one-shot mode for scripting (`sctui export holdings`)
+
+Missing something? [Open an issue](../../issues) — proposals that need a new
+`sc` command are welcome, read-only ones land fastest.
+
 ## Limits
 
 - Only as good as the CLI: when `sc` does not report something, sctui shows `—`.
