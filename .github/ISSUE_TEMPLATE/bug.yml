@@ -1,33 +1,33 @@
-name: Bug melden
-description: Etwas wird falsch angezeigt oder stürzt ab
+name: Bug report
+description: Something renders wrong or crashes
 labels: [bug]
 body:
   - type: input
     id: versions
     attributes:
-      label: Versionen
-      description: "`sctui --version` und `sc --version`"
+      label: Versions
+      description: "`sctui --version` and `sc --version`"
       placeholder: sctui 0.1.0 · sc 1.0.0
     validations:
       required: true
   - type: textarea
     id: what
     attributes:
-      label: Was passiert, was sollte passieren?
+      label: What happens, what should happen?
     validations:
       required: true
   - type: textarea
     id: debug
     attributes:
-      label: Roh-JSON der betroffenen Ansicht
+      label: Raw JSON of the affected view
       description: >
-        In sctui `d` drücken — das Overlay zeigt den abgesetzten sc-Befehl und
-        die Rohantwort. Bitte hier einfügen und **persönliche Daten
-        (Kontostände, IDs) vorher schwärzen**. Ohne dieses JSON ist die
-        Feldnamen-Klasse von Bugs praktisch nicht diagnostizierbar.
+        Press `d` in sctui — the overlay shows the exact sc command and the
+        raw response. Paste it here and **redact personal data (balances,
+        IDs) first**. Without this JSON, the field-name class of bugs is
+        practically undiagnosable.
       render: json
   - type: input
     id: terminal
     attributes:
-      label: Terminal & Größe
-      placeholder: iTerm2, 120×30
+      label: Terminal & size
+      placeholder: WezTerm, 120×30

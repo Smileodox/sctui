@@ -1,7 +1,7 @@
 {
   "name": "sctui",
   "version": "0.1.0",
-  "description": "Read-only terminal dashboard for Scalable Capital, built on the official sc CLI. Unofficial — not affiliated with Scalable Capital.",
+  "description": "Terminal dashboard for Scalable Capital, built on the official sc CLI. Unofficial, currently read-only.",
   "license": "Apache-2.0",
   "keywords": [
     "scalable-capital",

@@ -1,25 +1,25 @@
-name: Feature vorschlagen
-description: Eine neue Ansicht, Spalte oder Fähigkeit
+name: Feature request
+description: A new view, column or capability
 labels: [enhancement]
 body:
   - type: markdown
     attributes:
       value: >
-        **Vorab:** sctui ist read-only by design — das ist eine
-        festgeschriebene Entscheidung, kein fehlendes Feature. Trading,
-        Watchlist-Änderungen, Preisalarm-Verwaltung und jede andere Mutation
-        werden nicht gebaut, auch nicht hinter einem Flag.
-        Details: [SECURITY.md](https://github.com/Smileodox/sctui/blob/main/SECURITY.md).
+        **Note:** the current version of sctui is read-only — it cannot change
+        anything in your account, and that guarantee is enforced structurally
+        ([SECURITY.md](https://github.com/Smileodox/sctui/blob/main/SECURITY.md)).
+        Proposals for mutating features (trading, watchlist edits, alerts)
+        are welcome but held to a much higher bar: they need a safety design
+        that keeps the read-only default intact.
   - type: textarea
     id: proposal
     attributes:
-      label: Was soll sctui können?
+      label: What should sctui be able to do?
     validations:
       required: true
   - type: textarea
     id: source
     attributes:
-      label: Woher kommen die Daten?
+      label: Where does the data come from?
       description: >
-        Welches `sc`-Kommando liefert sie? (`sc --help`, `sc broker --help`)
-        Nur lesende Kommandos kommen in Frage.
+        Which `sc` command provides it? (`sc --help`, `sc broker --help`)

@@ -1,76 +1,86 @@
-# Sicherheit
+# Security
 
-sctui zeigt Depotdaten an. Wer es benutzt, gibt einem fremden Programm Zugriff
-auf seine Scalable-CLI-Session — dieses Dokument erklärt, warum das vertretbar
-ist und wie man es **selbst in fünf Minuten nachprüft**, statt es zu glauben.
+sctui displays portfolio data. Using it means giving a third-party program
+access to your Scalable CLI session — this document explains why that is
+reasonable and how to **verify it yourself in five minutes** instead of
+taking it on faith.
 
-## Trust-Modell
+## Trust model
 
-- sctui hat **keine eigenen Zugangsdaten** und spricht **keine API** an. Alles
-  läuft über die offizielle [`sc`-CLI](https://github.com/ScalableCapital/scalable-cli),
-  die du selbst installierst und in die du dich selbst einloggst. Tokens
-  verwaltet `sc`, nicht sctui.
-- sctui ist **read-only by construction**: es gibt keinen Codepfad, der eine
-  Order platzieren, bestätigen oder stornieren kann — auch keine „harmlosen"
-  Schreiboperationen wie Watchlist-Änderungen oder Preisalarme.
-- sctui telemetriert nichts, schreibt nichts auf die Platte und öffnet keine
-  Netzwerkverbindungen. Der einzige Effekt auf die Außenwelt ist der Aufruf
-  der `sc`-Binary.
+- sctui holds **no credentials of its own** and talks to **no API**.
+  Everything goes through the official
+  [`sc` CLI](https://github.com/ScalableCapital/scalable-cli), which you
+  install and log into yourself. Tokens are managed by `sc`, not by sctui.
+- The current release is **read-only by construction**: it only ever runs
+  read-only `sc` commands. There is no code path that places, confirms or
+  cancels an order, and none for "harmless" writes like watchlist edits
+  either.
+- sctui sends no telemetry, writes nothing to disk and opens no network
+  connections. Its only effect on the outside world is invoking the `sc`
+  binary.
 
-## Der 5-Minuten-Audit
+## The five-minute audit
 
-Die Garantie hängt an genau einer Datei. So prüfst du sie:
+The guarantee hangs on exactly one file. To check it:
 
-1. **Ein Choke-Point.** Prozesse werden ausschließlich in
-   [`src/sc/exec.ts`](src/sc/exec.ts) gestartet:
+1. **One choke point.** Processes are spawned exclusively in
+   [`src/sc/exec.ts`](src/sc/exec.ts):
 
    ```sh
    grep -rn child_process src/
-   # → genau ein Treffer: src/sc/exec.ts
+   # → exactly one hit: src/sc/exec.ts
    ```
 
-   CI erzwingt das: [`scripts/check-readonly-boundary.mjs`](scripts/check-readonly-boundary.mjs)
-   schlägt fehl, sobald `child_process` irgendwo sonst in `src/` auftaucht.
+   CI enforces this:
+   [`scripts/check-readonly-boundary.mjs`](scripts/check-readonly-boundary.mjs)
+   fails as soon as `child_process` appears anywhere else in `src/`.
 
-2. **Eine Allowlist.** `READ_ONLY_COMMANDS` in `exec.ts` zählt jedes erlaubte
-   Kommando als **exakten** Token-Pfad auf — kein Präfix-Match, d. h.
-   `broker watchlist` erlaubt nicht `broker watchlist add`.
+2. **One allowlist.** `READ_ONLY_COMMANDS` in `exec.ts` lists every permitted
+   command as an **exact** token path — no prefix matching, i.e.
+   `broker watchlist` does not permit `broker watchlist add`.
 
-3. **Eine Sperrliste.** `FORBIDDEN_FLAGS` blockt Bestätigungs-Flags
-   (`--confirm`, `--accept-unsuitable`, `--yes`, `-y`), auch in der
-   `--flag=wert`-Form — konservativ: ein gesperrtes Flag wird selbst dann
-   abgewiesen, wenn es nur als Wert auftaucht.
+3. **One blocklist.** `FORBIDDEN_FLAGS` rejects confirmation flags
+   (`--confirm`, `--accept-unsuitable`, `--yes`, `-y`), including the
+   `--flag=value` form — conservatively: a blocked flag is refused even when
+   it only appears as a value.
 
-4. **Vor jedem Spawn.** `runSc()` ruft `assertReadOnly()` als erste Zeile auf.
-   [`tests/exec.test.ts`](tests/exec.test.ts) beweist all das mit jedem
-   CI-Lauf: Pfad-Exaktheit, Case-Sensitivität, Flag-Formen, und dass die
-   Nutzereingabe der Suche nie als Flag interpretiert werden kann.
+4. **Before every spawn.** `runSc()` calls `assertReadOnly()` as its first
+   step. [`tests/exec.test.ts`](tests/exec.test.ts) proves all of this on
+   every CI run: path exactness, case sensitivity, flag forms, and that the
+   search input can never be interpreted as a flag.
 
-## Zweite Schicht: `--local-read-only`
+## Second layer: `--local-read-only`
 
-Du musst nicht einmal diesem Code vertrauen. Die offizielle CLI kann die
-Session selbst schreibgeschützt anlegen:
+You do not even have to trust this code. The official CLI can store the
+session itself in read-only mode:
 
 ```sh
 sc login --local-read-only
 ```
 
-Dann verweigert schon die `sc`-Binary jede Mutation — egal, was ein Programm
-darüber versucht. sctui empfiehlt diesen Login und braucht nie mehr als das.
-Die Allowlist ist damit die zweite Verteidigungslinie, nicht die einzige.
+The `sc` binary then refuses any mutation — regardless of what a program
+above it asks for. sctui recommends this login, and its current version never
+issues anything such a session would refuse. The allowlist is the second line
+of defence, not the only one.
 
-## Grenzen
+## Scope of the guarantee
 
-- sctui zeigt an, was `sc` liefert. Falsche, verzögerte oder unvollständige
-  Anzeigen sind möglich — keine Anlageberatung, Entscheidungen bitte nie
-  allein auf Basis dieser Anzeige treffen.
-- `npm install` zieht drei Runtime-Abhängigkeiten (ink, ink-text-input,
-  react); der Lockfile ist eingecheckt, Releases werden mit
-  `npm publish --provenance` veröffentlicht.
+"Read-only" describes the release you are running, enforced by the mechanisms
+above and their tests — it is not a promise about all future versions. If
+write features ever land, they will be opt-in, separately guarded, and
+released clearly as such; the audit trail above will make any such change
+visible in one file.
 
-## Lücke gefunden?
+## Limits
 
-Bitte **nicht** als öffentliches Issue. Nutze GitHubs private
-Schwachstellenmeldung („Report a vulnerability" im Security-Tab des Repos).
-Alles, was die Read-only-Garantie betrifft, wird mit höchster Priorität
-behandelt.
+- sctui shows what `sc` reports. Wrong, delayed or incomplete figures are
+  possible — not investment advice; never act on this display alone.
+- `npm install` pulls three runtime dependencies (ink, ink-text-input,
+  react); the lockfile is committed and releases are published with
+  `npm publish --provenance`.
+
+## Found a vulnerability?
+
+Please **not** as a public issue. Use GitHub's private vulnerability
+reporting ("Report a vulnerability" in the repo's Security tab). Anything
+touching the read-only guarantee is treated with the highest priority.
