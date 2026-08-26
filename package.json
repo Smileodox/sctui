@@ -1,0 +1,49 @@
+{
+  "name": "sctui",
+  "version": "0.1.0",
+  "description": "Read-only terminal dashboard for Scalable Capital, built on the official sc CLI. Unofficial — not affiliated with Scalable Capital.",
+  "license": "Apache-2.0",
+  "keywords": [
+    "scalable-capital",
+    "tui",
+    "terminal",
+    "broker",
+    "portfolio",
+    "ink",
+    "dashboard",
+    "read-only"
+  ],
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "bin": {
+    "sctui": "./dist/cli.js"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.tsx",
+    "demo": "tsx src/cli.tsx --demo",
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "snapshot": "tsx scripts/snapshot.tsx",
+    "check:layout": "node scripts/check-layout.mjs"
+  },
+  "dependencies": {
+    "ink": "^7.1.1",
+    "ink-text-input": "^6.0.0",
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "tsx": "^4.23.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

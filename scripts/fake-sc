@@ -1,0 +1,272 @@
+#!/bin/sh
+# A stand-in for the real `sc`, so the live code path can be exercised without
+# an account. Every response mirrors the shape the real CLI emits, verified
+# against sc 1.0.0: the `{"ok":…,"command":…,"data":{…,"result":…}}` envelope,
+# snake_case fields, timeframe-keyed performance arrays, and `data.data_points`
+# for charts (the one command whose `data` has no `result`).
+#
+#   npx tsx scripts/snapshot.tsx 120 30 holdings --sc-bin="$PWD/scripts/fake-sc"
+#   SCTUI_SC_BIN="$PWD/scripts/fake-sc" npm run dev
+#
+# FAKE_SC_FAIL=auth  → the not-logged-in envelope, which the real CLI returns on
+#                      exit code 0; this is what drives the setup screen.
+# FAKE_SC_FAIL=exit  → a hard failure on stderr with a non-zero exit code.
+if [ "$FAKE_SC_FAIL" = "auth" ]; then
+  echo '{"ok":false,"command":"broker.overview","error":{"code":"unauthorized","message":"not logged in"},"hints":["Run `sc login` to authenticate."]}'
+  exit 0
+fi
+if [ "$FAKE_SC_FAIL" = "exit" ]; then
+  echo "error: sc exploded" >&2
+  exit 1
+fi
+
+ACCOUNT='"account_id":"fake-account","portfolio_id":"fake-portfolio"'
+
+# The demo portfolio: isin, quantity, lifetime gain, type, quote-is-outdated,
+# then the name as the rest of the line. `broker overview` and `broker holdings`
+# both derive their numbers from this one table, so the totals in the header can
+# never drift away from the rows on the positions tab.
+POSITIONS="IE00BK5BQT80 1405.5688 0.5403 ETF false Vanguard FTSE All-World (Acc)
+US0378331005 707 0.5756 STOCK false Apple
+IE00B4L5Y983 578.4471 0.0273 ETF false iShares Core MSCI World (Acc)
+DE000BASF111 122 -0.0750 STOCK true BASF"
+
+# A price derived from the ISIN itself, so quotes and charts agree with each
+# other and stay identical across runs — for any ISIN, including ones that only
+# ever show up in search results.
+base_price() {
+  awk -v isin="$1" 'BEGIN {
+    n = 0
+    for (i = 1; i <= length(isin); i++) n += index("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", substr(isin, i, 1)) * i
+    printf "%.4f", 12 + (n % 24000) / 100
+  }'
+}
+
+# The day change, derived from the ISIN the same way, in -2.0 %…+2.0 % — so the
+# movers panel gets both winners and losers instead of one repeated number.
+day_ratio() {
+  awk -v isin="$1" 'BEGIN {
+    n = 0
+    for (i = 1; i <= length(isin); i++) n += index("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", substr(isin, i, 1)) * (i + 3)
+    printf "%.4f", ((n % 41) - 20) / 1000
+  }'
+}
+
+# Column $2 of the position table for an ISIN, empty for anything that is not
+# one of ours — quotes are asked for watchlist and search rows too.
+position_field() {
+  printf '%s\n' "$POSITIONS" | awk -v isin="$1" -v col="$2" '$1 == isin { print $col }'
+}
+
+# Every position as `isin quantity gain price dayRatio`, for the callers that
+# want to add something up.
+priced_positions() {
+  printf '%s\n' "$POSITIONS" | while read -r isin qty gain _type _stale _name; do
+    printf '%s %s %s %s %s\n' "$isin" "$qty" "$gain" "$(base_price "$isin")" "$(day_ratio "$isin")"
+  done
+}
+
+# $1 is `value`, `intraday` or `lifetime`. The two returns are money, matching
+# the real overview, which reports no ratios at all.
+portfolio_stat() {
+  priced_positions | awk -v mode="$1" '
+    { value = $2 * $4
+      total += value
+      intraday += value - value / (1 + $5)
+      lifetime += value - value / (1 + $3) }
+    END {
+      if (mode == "value") printf "%.2f", total
+      else if (mode == "intraday") printf "%.2f", intraday
+      else printf "%.2f", lifetime
+    }'
+}
+
+case "$1 $2" in
+  "whoami "*)
+    printf '{"ok":true,"command":"whoami","data":{"result":{"personOverview":{"externalId":null,"id":"fake-person","locale":"de_DE","personalDetails":{"firstName":"Test","lastName":"Nutzer"}}}}}\n'
+    ;;
+
+  "broker overview")
+    securities=$(portfolio_stat value)
+    intraday=$(portfolio_stat intraday)
+    lifetime=$(portfolio_stat lifetime)
+    # No `performance` ratio anywhere in here: the real overview reports money
+    # only, which is why every percentage on the header is a derived one.
+    cat <<JSON
+{"ok":true,"command":"broker.overview","data":{$ACCOUNT,
+ "result":{$ACCOUNT,
+  "performance":[{"simpleAbsoluteReturn":$intraday,"timeframe":"INTRADAY"},
+                 {"simpleAbsoluteReturn":-118.02,"timeframe":"TWO_DAYS"},
+                 {"simpleAbsoluteReturn":402.11,"timeframe":"ONE_WEEK"},
+                 {"simpleAbsoluteReturn":1204.65,"timeframe":"ONE_MONTH"},
+                 {"simpleAbsoluteReturn":2988.30,"timeframe":"THREE_MONTHS"},
+                 {"simpleAbsoluteReturn":4471.09,"timeframe":"SIX_MONTHS"},
+                 {"simpleAbsoluteReturn":6002.55,"timeframe":"ONE_YEAR"},
+                 {"simpleAbsoluteReturn":$lifetime,"timeframe":"MAX"}],
+  "timestamps":{"inventory_timestamp_utc":"2026-08-26T01:27:10.129Z","valuation_timestamp_utc":"2026-08-26T08:41:00.091Z"},
+  "valuation":{"crypto":0,"securities":$securities,"total":$securities,"currency":"EUR"}}}}
+JSON
+    ;;
+
+  "broker cash-breakdown")
+    cat <<JSON
+{"ok":true,"command":"broker.cash-breakdown","data":{$ACCOUNT,
+ "result":{$ACCOUNT,"available_credit_line":0,"available_for_derivatives":0,"buying_power":4218.40,
+  "buying_power_without_credit":4218.40,"cash_balance":4218.40,"derivatives_buying_power":0,
+  "loaned":0,"pending_buy_orders_amount":0,"possible_taxes":0,"currency":"EUR"}}}
+JSON
+    ;;
+
+  "broker holdings")
+    printf '{"ok":true,"command":"broker.holdings","data":{%s,"result":{%s,"count":4,"items":[' "$ACCOUNT" "$ACCOUNT"
+    printf '%s\n' "$POSITIONS" | while read -r isin qty gain type stale name; do
+      price=$(base_price "$isin")
+      [ "$isin" = "IE00BK5BQT80" ] || printf ','
+      awk -v isin="$isin" -v qty="$qty" -v gain="$gain" -v type="$type" -v stale="$stale" \
+          -v name="$name" -v price="$price" 'BEGIN {
+        printf "{\"isin\":\"%s\",\"name\":\"%s\",\"security_type\":\"%s\",\"quantity\":%s,\"fifo_price\":%.4f,\"quote_mid_price\":%s,\"valuation\":%.2f,\"quote_currency\":\"EUR\",\"valuation_currency\":\"EUR\",\"quote_is_outdated\":%s,\"quote_timestamp_utc\":\"2026-08-26T08:41:08.116Z\",\"blocked_quantity\":0,\"pending_quantity\":0}", \
+          isin, name, type, qty, price / (1 + gain), price, qty * price, stale
+      }'
+    done
+    printf ']}}}\n'
+    ;;
+
+  "broker watchlist")
+    w1=$(base_price US88160R1014)
+    w2=$(base_price DE000PK6ETT7)
+    w3=$(base_price IE00B1XNHC34)
+    cat <<JSON
+{"ok":true,"command":"broker.watchlist","data":{$ACCOUNT,
+ "result":{$ACCOUNT,"count":3,"items":[
+  {"isin":"US88160R1014","name":"Tesla","security_type":"STOCK","quote_mid_price":$w1,
+   "quote_currency":"EUR","quote_is_outdated":false,"quote_timestamp_utc":"2026-08-26T08:40:53.322Z"},
+  {"isin":"DE000PK6ETT7","name":"Nutrien Call 80,00 BNP","security_type":"DERIVATIVE","quote_mid_price":$w2,
+   "quote_currency":"EUR","quote_is_outdated":false,"quote_timestamp_utc":"2026-08-26T08:30:09.968Z"},
+  {"isin":"IE00B1XNHC34","name":"iShares Global Clean Energy Transition (Dist)","security_type":"ETF","quote_mid_price":$w3,
+   "quote_currency":"EUR","quote_is_outdated":false,"quote_timestamp_utc":"2026-08-26T08:38:24.668Z"}]}}}
+JSON
+    ;;
+
+  "broker transactions")
+    # The label comes from `security_transaction_type` where there is one, then
+    # `side`, then `type` — and a cash transaction carries neither a quantity nor
+    # a price, so those two cells stay empty.
+    cat <<JSON
+{"ok":true,"command":"broker.transactions","data":{$ACCOUNT,
+ "result":{$ACCOUNT,"count":4,"cursor":null,
+  "items":[
+   {"id":"tx-1","amount":-19.5299,"currency":"EUR","description":"Amundi Core MSCI World (Acc)",
+    "isin":"IE000BI8OT95","quantity":0.120410,"last_event_datetime":"2026-08-25T13:11:00.502Z",
+    "security_transaction_type":"SAVINGS_PLAN","side":"BUY","status":"SETTLED","type":"SECURITY_TRANSACTION",
+    "is_cancellation":false,"limit_price":null,"stop_price":null},
+   {"id":"tx-2","amount":-533.93,"currency":"EUR","description":"Apple",
+    "isin":"US0378331005","quantity":2.5,"last_event_datetime":"2026-08-24T09:02:11.000Z",
+    "security_transaction_type":"BUY","side":"BUY","status":"SETTLED","type":"SECURITY_TRANSACTION",
+    "is_cancellation":false,"limit_price":214.00,"stop_price":null},
+   {"id":"tx-3","amount":1288.40,"currency":"EUR","description":"BASF",
+    "isin":"DE000BASF111","quantity":29,"last_event_datetime":"2026-08-20T15:44:03.000Z",
+    "security_transaction_type":"SELL","side":"SELL","status":"SETTLED","type":"SECURITY_TRANSACTION",
+    "is_cancellation":false,"limit_price":null,"stop_price":null},
+   {"id":"tx-4","amount":2000.00,"currency":"EUR","description":"Sent from Revolut",
+    "isin":null,"quantity":null,"last_event_datetime":"2026-08-18T02:00:00.000Z",
+    "status":"SETTLED","type":"CASH_TRANSACTION","is_cancellation":false}]}}}
+JSON
+    ;;
+
+  "overnight "*)
+    # The display name sits beside `result`, not inside it, which is why the
+    # client asks for the whole `data` container for this one command.
+    cat <<'JSON'
+{"ok":true,"command":"overnight","data":{
+ "account":{"display_name":"Tagesgeld","is_active":true,"owner_kind":"personal"},
+ "savings_account_id":"fake-savings","selection":{"account":"auto_resolve"},
+ "result":{"balance":4218.40,"current_accrued_amount":31.86,"current_interest_bearing_amount":4218.40,
+  "deposit_accrued_lifetime_amount":204.55,"estimated_next_payout_amount":8.94,
+  "interest_rate":0.025,"next_payout_date":"2026-09-01T00:00:00+00:00"}}}
+JSON
+    ;;
+
+  "broker quote")
+    isin=$4
+    type=$(position_field "$isin" 4)
+    stale=$(position_field "$isin" 5)
+    # Fields 6..NF, not substr-from-$6: "BASF" also occurs inside "DE000BASF111".
+    name=$(printf '%s\n' "$POSITIONS" | awk -v isin="$isin" '$1 == isin {
+      out = $6
+      for (i = 7; i <= NF; i++) out = out " " $i
+      print out
+    }')
+    [ -n "$type" ] || type=STOCK
+    [ -n "$stale" ] || stale=false
+    [ -n "$name" ] || name=$isin
+    # Ratios and amounts have to agree with each other: the detail pane backs the
+    # previous close out of the intraday pair, so an inconsistent fixture would
+    # quietly render a wrong Vortag rather than an obvious error.
+    awk -v isin="$isin" -v type="$type" -v stale="$stale" -v name="$name" \
+        -v mid="$(base_price "$isin")" -v day="$(day_ratio "$isin")" 'BEGIN {
+      split("INTRADAY 0 TWO_DAYS 0.0021 ONE_WEEK -0.0088 ONE_MONTH 0.0214 THREE_MONTHS 0.0455 SIX_MONTHS 0.1088 ONE_YEAR 0.1902 SINCE_BUY 0.2204 MAX 1.4471", f, " ")
+      rows = ""
+      for (i = 1; i in f; i += 2) {
+        ratio = f[i + 1] + day
+        abs = mid - mid / (1 + ratio)
+        rows = rows sprintf("%s{\"performance\":%.4f,\"simple_absolute_return\":%.4f,\"timeframe\":\"%s\"}", (i > 1 ? "," : ""), ratio, abs, f[i])
+      }
+      printf "{\"ok\":true,\"command\":\"broker.quote\",\"data\":{\"account_id\":\"fake-account\",\"portfolio_id\":\"fake-portfolio\",\"result\":{\"isin\":\"%s\",\"security_id\":\"%s\",\"name\":\"%s\",\"security_type\":\"%s\",\"quote_mid_price\":%s,\"quote_bid_price\":%.4f,\"quote_ask_price\":%.4f,\"quote_currency\":\"EUR\",\"quote_is_outdated\":%s,\"quote_performance_date\":\"2026-08-26\",\"quote_timestamp_utc\":\"2026-08-26T08:41:25.846Z\",\"quote_performances\":[%s]}}}\n", isin, isin, name, type, mid, mid * 0.9998, mid * 1.0002, stale, rows
+    }'
+    ;;
+
+  "broker chart")
+    # Calendar arithmetic by hand: POSIX awk has no strftime, so the series is
+    # laid out over a fixed 2026-07-01…2026-08-31 window. Long timeframes get
+    # clamped to that window — only the spread of the points matters here.
+    awk -v isin="$4" -v tf="$6" -v base="$(base_price "$4")" '
+    function iso(d, h, m) {
+      return d <= 31 \
+        ? sprintf("2026-07-%02dT%02d:%02d:00.000Z", d, h, m) \
+        : sprintf("2026-08-%02dT%02d:%02d:00.000Z", d - 31, h, m)
+    }
+    BEGIN {
+      if (tf == "1d")       { n = 60;  span = 1 }
+      else if (tf == "7d")  { n = 72;  span = 7 }
+      else if (tf == "1m")  { n = 90;  span = 30 }
+      else if (tf == "3m")  { n = 120; span = 42 }
+      else if (tf == "6m")  { n = 140; span = 50 }
+      else if (tf == "ytd") { n = 150; span = 55 }
+      else if (tf == "1y")  { n = 160; span = 58 }
+      else                  { n = 180; span = 60 }
+
+      start = 62 - span
+      points = ""
+      for (i = 0; i < n; i++) {
+        minutes = int(i / (n - 1) * span * 1440)
+        day = start + int(minutes / 1440)
+        rest = minutes % 1440
+        price = base * (1 + 0.021 * sin(i / 6.5) + 0.014 * sin(i / 23.0) + 0.0006 * i)
+        points = points sprintf("%s{\"mid_price\":%.4f,\"timestamp_utc\":\"%s\"}", (i ? "," : ""), price, iso(day, int(rest / 60), rest % 60))
+      }
+      printf "{\"ok\":true,\"command\":\"broker.chart\",\"data\":{\"isin\":\"%s\",\"timeframe\":\"%s\",\"currency\":\"EUR\",\"source\":\"CONSOLIDATED\",\"point_count\":%d,\"closing_reference_point\":{\"mid_price\":%.4f,\"timestamp_utc\":\"%s\"},\"data_points\":[%s]}}\n", isin, tf, n, base * 0.994, iso(start, 21, 0), points
+    }'
+    ;;
+
+  "broker search")
+    q=$3
+    s1=$(base_price US0378331005)
+    s2=$(base_price CA03785Y1007)
+    s3=$(base_price IE00BK5BZS07)
+    cat <<JSON
+{"ok":true,"command":"broker.search","data":{$ACCOUNT,
+ "result":{$ACCOUNT,"count":3,"items":[
+  {"isin":"US0378331005","name":"$q","security_type":"STOCK","quote_mid_price":$s1,
+   "quote_currency":"EUR","quote_is_outdated":false,"quote_timestamp_utc":"2026-08-26T08:41:07.482Z"},
+  {"isin":"CA03785Y1007","name":"$q CDR","security_type":"STOCK","quote_mid_price":$s2,
+   "quote_currency":"EUR","quote_is_outdated":false,"quote_timestamp_utc":"2026-08-26T08:10:03.351Z"},
+  {"isin":"IE00BK5BZS07","name":"Leverage Shares 3x $q ETP","security_type":"ETF","quote_mid_price":$s3,
+   "quote_currency":"EUR","quote_is_outdated":false,"quote_timestamp_utc":"2026-08-26T08:40:26.722Z"}]}}}
+JSON
+    ;;
+
+  *)
+    printf '{"ok":false,"command":"%s","error":{"code":"invalid_input","message":"error: unrecognized subcommand %s"},"hints":["Check command arguments and input values."]}\n' "$1" "'$2'"
+    exit 0
+    ;;
+esac
