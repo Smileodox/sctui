@@ -14,6 +14,12 @@
     "read-only"
   ],
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Smileodox/sctui.git"
+  },
+  "bugs": "https://github.com/Smileodox/sctui/issues",
+  "homepage": "https://github.com/Smileodox/sctui#readme",
   "files": [
     "dist",
     "README.md",

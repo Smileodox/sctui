@@ -1,0 +1,25 @@
+name: Feature vorschlagen
+description: Eine neue Ansicht, Spalte oder Fähigkeit
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        **Vorab:** sctui ist read-only by design — das ist eine
+        festgeschriebene Entscheidung, kein fehlendes Feature. Trading,
+        Watchlist-Änderungen, Preisalarm-Verwaltung und jede andere Mutation
+        werden nicht gebaut, auch nicht hinter einem Flag.
+        Details: [SECURITY.md](https://github.com/Smileodox/sctui/blob/main/SECURITY.md).
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Was soll sctui können?
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Woher kommen die Daten?
+      description: >
+        Welches `sc`-Kommando liefert sie? (`sc --help`, `sc broker --help`)
+        Nur lesende Kommandos kommen in Frage.

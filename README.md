@@ -1,5 +1,9 @@
 # sctui — Terminal-Dashboard für Scalable Capital
 
+[![ci](https://github.com/Smileodox/sctui/actions/workflows/ci.yml/badge.svg)](https://github.com/Smileodox/sctui/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/sctui)](https://www.npmjs.com/package/sctui)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
 Ein Read-only-Dashboard für das Scalable-Depot im Terminal, gebaut auf der
 offiziellen [Scalable CLI](https://github.com/ScalableCapital/scalable-cli).
 Übersicht, Positionen, Watchlist, Transaktionen, Detailansicht mit Chart und
