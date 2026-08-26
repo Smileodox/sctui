@@ -19,7 +19,7 @@ mit Auto-Refresh.
 Ohne Account, ohne CLI — Beispieldaten:
 
 ```sh
-npx sctui --demo
+npx @smileodox/sctui --demo
 ```
 
 Für echte Daten brauchst du die offizielle CLI (installierst und einloggst du
@@ -47,7 +47,7 @@ Verteidigungslinie, nicht die einzige.
 Und schließlich:
 
 ```sh
-npm install -g sctui
+npm install -g @smileodox/sctui
 sctui
 ```
 

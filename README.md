@@ -1,7 +1,7 @@
 # sctui — a terminal dashboard for Scalable Capital
 
 [![ci](https://github.com/Smileodox/sctui/actions/workflows/ci.yml/badge.svg)](https://github.com/Smileodox/sctui/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/sctui)](https://www.npmjs.com/package/sctui)
+[![npm](https://img.shields.io/npm/v/%40smileodox%2Fsctui)](https://www.npmjs.com/package/@smileodox/sctui)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 🇩🇪 [Deutsche Version](README.de.md)
@@ -27,7 +27,7 @@ Reproducible with [`vhs assets/demo.tape`](assets/demo.tape).*
 No account, no CLI, no risk — sample data:
 
 ```sh
-npx sctui --demo
+npx @smileodox/sctui --demo
 ```
 
 For live data you need the official CLI (you install it and log in yourself —
@@ -57,7 +57,7 @@ not the only one.
 Finally:
 
 ```sh
-npm install -g sctui
+npm install -g @smileodox/sctui
 sctui
 ```
 

@@ -1,6 +1,9 @@
 {
-  "name": "sctui",
+  "name": "@smileodox/sctui",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Terminal dashboard for Scalable Capital, built on the official sc CLI. Unofficial, currently read-only.",
   "license": "Apache-2.0",
   "keywords": [
