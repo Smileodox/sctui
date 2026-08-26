@@ -4,6 +4,7 @@ import process from 'node:process'
 import { App } from './app.js'
 import { ScClient, type DataSource } from './sc/client.js'
 import { DemoClient } from './sc/mock.js'
+import { t } from './strings.js'
 
 interface Options {
   demo: boolean
@@ -13,35 +14,7 @@ interface Options {
   altScreen: boolean
 }
 
-const USAGE = `
-  sctui — Terminal-Dashboard für das Scalable-Depot
-
-  Liest alle Daten über die offizielle Scalable CLI (sc). Read-only:
-  es werden ausschließlich lesende sc-Befehle ausgeführt.
-
-  Aufruf
-    sctui [optionen]
-
-  Optionen
-    --demo                 Beispieldaten statt echter (kein sc, kein Account nötig)
-    --refresh <sekunden>   Auto-Refresh-Intervall (Standard: 60)
-    --no-refresh           Auto-Refresh aus
-    --tab <name>           Starttab: overview | holdings | watchlist | transactions
-    --sc-bin <pfad>        Abweichender Pfad zur sc-Binary
-    --no-alt-screen        Im normalen Puffer rendern (nützlich zum Debuggen)
-    -h, --help             Diese Hilfe
-    -v, --version          Version
-
-  Tasten
-    1–4 Tabs · ↑↓ wählen · ⏎ Detail · [ ] Zeitraum · / Suche
-    r Refresh · a Auto-Refresh · d Roh-JSON · ? Hilfe · q Ende
-
-  Einrichtung (einmalig)
-    brew tap ScalableCapital/tap
-    brew trust --formula ScalableCapital/tap/scalable-cli
-    brew install scalable-cli
-    sc login          # "Scalable CLI" vorher im Profil unter Sicherheit aktivieren
-`
+const USAGE = t.usage
 
 const VALID_TABS = ['overview', 'holdings', 'watchlist', 'transactions'] as const
 
@@ -74,7 +47,7 @@ function parseArgs(argv: string[]): Options | { help: true } | { version: true }
       case '--refresh': {
         const value = Number(argv[++i])
         if (!Number.isFinite(value) || value < 5) {
-          return { error: '--refresh braucht eine Zahl ≥ 5 (Sekunden)' }
+          return { error: t.cliRefreshInvalid }
         }
         options.refreshSeconds = value
         break
@@ -82,19 +55,19 @@ function parseArgs(argv: string[]): Options | { help: true } | { version: true }
       case '--tab': {
         const value = argv[++i]
         if (!value || !(VALID_TABS as readonly string[]).includes(value)) {
-          return { error: `--tab muss eines von ${VALID_TABS.join(' | ')} sein` }
+          return { error: t.cliTabInvalid(VALID_TABS.join(' | ')) }
         }
         options.tab = value as Options['tab']
         break
       }
       case '--sc-bin': {
         const value = argv[++i]
-        if (!value) return { error: '--sc-bin braucht einen Pfad' }
+        if (!value) return { error: t.cliScBinMissing }
         options.scBin = value
         break
       }
       default:
-        return { error: `Unbekannte Option: ${arg}` }
+        return { error: t.cliUnknownOption(arg) }
     }
   }
 
@@ -114,7 +87,7 @@ if ('version' in parsed) {
 }
 
 if ('error' in parsed) {
-  process.stderr.write(`${parsed.error}\n\nsctui --help für alle Optionen.\n`)
+  process.stderr.write(`${parsed.error}\n\n${t.cliSeeHelp}\n`)
   process.exit(2)
 }
 

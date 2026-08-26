@@ -1,6 +1,7 @@
 import { Box, Text } from 'ink'
 import type React from 'react'
 import { KeyRow, Overlay } from '../components/Overlay.js'
+import { t } from '../strings.js'
 import { theme } from '../theme.js'
 
 export interface HelpOverlayProps {
@@ -11,38 +12,38 @@ export interface HelpOverlayProps {
 
 const SECTIONS: Array<{ title: string; keys: Array<[string, string]> }> = [
   {
-    title: 'Navigation',
+    title: t.helpNavigation,
     keys: [
-      ['1 – 4', 'Tab direkt wählen'],
-      ['tab / ⇧tab', 'Nächster / vorheriger Tab'],
-      ['↑ ↓  ·  j k', 'Zeile wechseln'],
-      ['g / G', 'Anfang / Ende der Liste'],
-      ['pgup / pgdn', 'Seitenweise blättern'],
+      ['1 – 4', t.helpNavTab],
+      ['tab / ⇧tab', t.helpNavNextTab],
+      ['↑ ↓  ·  j k', t.helpNavRow],
+      ['g / G', t.helpNavEnds],
+      ['pgup / pgdn', t.helpNavPage],
     ],
   },
   {
-    title: 'Detail & Chart',
+    title: t.helpDetailSection,
     keys: [
-      ['⏎  ·  →  ·  l', 'Detail zum ausgewählten Wert öffnen'],
-      ['esc  ·  ←  ·  h', 'Detail schließen'],
-      ['[  ]', 'Chart-Zeitraum zurück / vor'],
-      ['t', 'Zeitraum durchschalten'],
+      ['⏎  ·  →  ·  l', t.helpDetailOpen],
+      ['esc  ·  ←  ·  h', t.helpDetailClose],
+      ['[  ]', t.helpTimeframePrev],
+      ['t', t.helpTimeframeCycle],
     ],
   },
   {
-    title: 'Daten',
+    title: t.helpDataSection,
     keys: [
-      ['r', 'Jetzt aktualisieren (Cache umgehen)'],
-      ['a', 'Auto-Refresh an / aus'],
-      ['/', 'Instrumentensuche'],
-      ['d', 'Roh-JSON der aktuellen Ansicht'],
+      ['r', t.helpRefresh],
+      ['a', t.helpAuto],
+      ['/', t.helpSearch],
+      ['d', t.helpJson],
     ],
   },
   {
-    title: 'Allgemein',
+    title: t.helpGeneralSection,
     keys: [
-      ['?', 'Diese Hilfe'],
-      ['q  ·  ctrl-c', 'Beenden'],
+      ['?', t.helpThisHelp],
+      ['q  ·  ctrl-c', t.helpQuit],
     ],
   },
 ]
@@ -56,7 +57,7 @@ export function HelpOverlay({ width, height, mode }: HelpOverlayProps): React.Re
   }
 
   return (
-    <Overlay title="Tastenkürzel" hint="esc oder ? zum Schließen" width={width} height={height}>
+    <Overlay title={t.helpTitle} hint={t.helpHint} width={width} height={height}>
       <Box>
         {grouped.map((group, i) => (
           <Box key={i} flexDirection="column" width={columnWidth} marginRight={2}>
@@ -76,12 +77,8 @@ export function HelpOverlay({ width, height, mode }: HelpOverlayProps): React.Re
 
       <Box flexGrow={1} />
       <Box flexDirection="column">
-        <Text color={theme.dim}>
-          Datenquelle: {mode === 'demo' ? 'Demo-Generator (keine echten Daten)' : 'sc — die offizielle Scalable CLI'}
-        </Text>
-        <Text color={theme.dim}>
-          Diese App ist strikt read-only: es werden ausschließlich lesende sc-Befehle ausgeführt.
-        </Text>
+        <Text color={theme.dim}>{mode === 'demo' ? t.helpSourceDemo : t.helpSourceLive}</Text>
+        <Text color={theme.dim}>{t.helpReadOnly}</Text>
       </Box>
     </Overlay>
   )

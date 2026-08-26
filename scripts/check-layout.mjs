@@ -45,11 +45,13 @@ const TABS = ['overview', 'holdings', 'watchlist', 'transactions']
 const FAKE_SC = path.join(root, 'scripts', 'fake-sc')
 
 /**
- * A tile label, which overlapping rows corrupt ("—ertpapiere") while leaving
+ * A tile label, which overlapping rows corrupt ("—ecurities") while leaving
  * the frame exactly as wide and as tall as it was. Matched with the spaces
  * stripped, since the label is letter-spaced when the tile is wide enough.
+ * The matrix pins SCTUI_LOCALE below, so the label is stable regardless of
+ * the machine's own language.
  */
-const TILE_LABEL = 'wertpapiere'
+const TILE_LABEL = 'securities'
 
 /**
  * Narrow terminals, where the detail pane takes the whole width — so a match
@@ -109,7 +111,8 @@ async function check({ columns, rows, tab, keys, scBin, env, expect }) {
   const { stdout } = await run('npx', ['tsx', ...args], {
     cwd: root,
     encoding: 'utf8',
-    env: { ...process.env, ...env },
+    // Pinned locale: the content assertions match English labels.
+    env: { ...process.env, SCTUI_LOCALE: 'en-US', ...env },
   })
   const lines = stdout.replace(ANSI, '').split('\n')
   const wide = lines

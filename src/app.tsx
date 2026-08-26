@@ -10,6 +10,7 @@ import { glyphs, theme } from './theme.js'
 import { ScError } from './sc/exec.js'
 import { TIMEFRAMES, type DataSource, type Timeframe } from './sc/client.js'
 import type { Json } from './sc/json.js'
+import { t } from './strings.js'
 import { DebugOverlay } from './views/DebugOverlay.js'
 import { DetailPane } from './views/DetailPane.js'
 import { HelpOverlay } from './views/HelpOverlay.js'
@@ -21,10 +22,10 @@ import { TransactionsView } from './views/TransactionsView.js'
 import { WatchlistView } from './views/WatchlistView.js'
 
 const TABS: readonly Tab[] = [
-  { id: 'overview', label: 'Übersicht' },
-  { id: 'holdings', label: 'Positionen' },
-  { id: 'watchlist', label: 'Watchlist' },
-  { id: 'transactions', label: 'Transaktionen' },
+  { id: 'overview', label: t.tabOverview },
+  { id: 'holdings', label: t.tabHoldings },
+  { id: 'watchlist', label: t.tabWatchlist },
+  { id: 'transactions', label: t.tabTransactions },
 ]
 
 type TabId = (typeof TABS)[number]['id']
@@ -314,27 +315,27 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
   const listWidth = width - detailWidth
 
   const keyHints: ReadonlyArray<readonly [string, string]> = overlay
-    ? ([['esc', 'schließen']] as const)
+    ? ([['esc', t.hintClose]] as const)
     : fatalError
       ? // Nothing loaded, so navigation keys would only produce more errors.
         ([
-          ['r', 'erneut versuchen'],
-          ['?', 'hilfe'],
-          ['q', 'ende'],
+          ['r', t.hintRetry],
+          ['?', t.hintHelp],
+          ['q', t.hintQuit],
         ] as const)
       : ([
-          ['↑↓', 'wählen'],
-          showDetail ? (['esc', 'zurück'] as const) : (['⏎', 'detail'] as const),
-          ['[ ]', 'zeitraum'],
-          ['/', 'suche'],
-          ['r', 'refresh'],
-          ['a', 'auto'],
+          ['↑↓', t.hintSelect],
+          showDetail ? (['esc', t.hintBack] as const) : (['⏎', t.hintDetail] as const),
+          ['[ ]', t.hintTimeframe],
+          ['/', t.hintSearch],
+          ['r', t.hintRefresh],
+          ['a', t.hintAuto],
           // Least-to-most essential from here: the status bar drops hints from
           // the right when the terminal is narrow, and `d` is a diagnostic key
           // that the help overlay documents anyway.
-          ['?', 'hilfe'],
-          ['q', 'ende'],
-          ['d', 'json'],
+          ['?', t.hintHelp],
+          ['q', t.hintQuit],
+          ['d', t.hintJson],
         ] as const)
 
   return (
@@ -353,7 +354,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
 
       <Box marginTop={1} height={contentHeight}>
         {!roomForContent ? (
-          <Text color={theme.dim}>{truncate('Terminal zu niedrig — mehr Zeilen nötig.', width)}</Text>
+          <Text color={theme.dim}>{truncate(t.terminalTooShort, width)}</Text>
         ) : fatalError ? (
           <SetupView error={fatalError} width={width} height={contentHeight} />
         ) : overlay === 'help' ? (
@@ -456,7 +457,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       />
 
       {narrow ? (
-        <Text color={theme.warn}>{truncate(` Terminal ist schmal (${size.columns} Spalten) — ab 100 wird es besser.`, width)}</Text>
+        <Text color={theme.warn}>{truncate(t.terminalNarrow(size.columns), width)}</Text>
       ) : null}
     </Box>
   )

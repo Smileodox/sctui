@@ -2,6 +2,7 @@ import type React from 'react'
 import { Panel } from '../components/Panel.js'
 import { Table, type Column } from '../components/Table.js'
 import { money, moneySigned, number, percent, quantity } from '../format.js'
+import { t } from '../strings.js'
 import { theme, trendColor, trendGlyph } from '../theme.js'
 import type { Holding } from '../sc/normalize.js'
 
@@ -22,7 +23,7 @@ export interface HoldingsViewProps {
 const COLUMNS: Array<Column<Holding>> = [
   {
     key: 'name',
-    header: 'Position',
+    header: t.colPosition,
     width: 'flex',
     minWidth: 14,
     priority: 0,
@@ -31,7 +32,7 @@ const COLUMNS: Array<Column<Holding>> = [
   },
   {
     key: 'type',
-    header: 'Typ',
+    header: t.colType,
     width: 6,
     priority: 8,
     value: (h) => h.type ?? '',
@@ -39,7 +40,7 @@ const COLUMNS: Array<Column<Holding>> = [
   },
   {
     key: 'qty',
-    header: 'Stück',
+    header: t.colShares,
     width: 10,
     align: 'right',
     priority: 6,
@@ -48,7 +49,7 @@ const COLUMNS: Array<Column<Holding>> = [
   },
   {
     key: 'price',
-    header: 'Kurs',
+    header: t.colPrice,
     width: 11,
     align: 'right',
     priority: 5,
@@ -57,7 +58,7 @@ const COLUMNS: Array<Column<Holding>> = [
   },
   {
     key: 'value',
-    header: 'Wert',
+    header: t.colValue,
     width: 14,
     align: 'right',
     priority: 1,
@@ -67,7 +68,7 @@ const COLUMNS: Array<Column<Holding>> = [
   },
   {
     key: 'day',
-    header: 'Heute',
+    header: t.colToday,
     width: 10,
     align: 'right',
     priority: 4,
@@ -77,7 +78,7 @@ const COLUMNS: Array<Column<Holding>> = [
   },
   {
     key: 'pnl',
-    header: 'G/V',
+    header: t.colPnl,
     width: 14,
     align: 'right',
     priority: 3,
@@ -86,7 +87,7 @@ const COLUMNS: Array<Column<Holding>> = [
   },
   {
     key: 'pnlPct',
-    header: 'G/V %',
+    header: t.colPnlPct,
     width: 10,
     align: 'right',
     priority: 2,
@@ -95,7 +96,7 @@ const COLUMNS: Array<Column<Holding>> = [
   },
   {
     key: 'weight',
-    header: 'Anteil',
+    header: t.colWeight,
     width: 8,
     align: 'right',
     priority: 7,
@@ -120,8 +121,8 @@ export function HoldingsView({
 
   return (
     <Panel
-      title="Positionen"
-      meta={holdings.length > 0 ? `${holdings.length} · ${money(total, currency)}` : loading ? 'lädt…' : ''}
+      title={t.tabHoldings}
+      meta={holdings.length > 0 ? `${holdings.length} · ${money(total, currency)}` : loading ? t.loading : ''}
       focused={focused}
       width={width}
       height={height}
@@ -133,7 +134,7 @@ export function HoldingsView({
         height={bodyHeight}
         selectedIndex={selectedIndex}
         focused={focused}
-        emptyMessage={loading ? 'lädt…' : 'Keine Positionen'}
+        emptyMessage={loading ? t.loading : t.noPositions}
       />
     </Panel>
   )

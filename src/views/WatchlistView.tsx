@@ -2,6 +2,7 @@ import type React from 'react'
 import { Panel } from '../components/Panel.js'
 import { Table, type Column } from '../components/Table.js'
 import { money, percent } from '../format.js'
+import { t } from '../strings.js'
 import { theme, trendColor, trendGlyph } from '../theme.js'
 import type { WatchItem } from '../sc/normalize.js'
 
@@ -17,7 +18,7 @@ export interface WatchlistViewProps {
 const COLUMNS: Array<Column<WatchItem>> = [
   {
     key: 'name',
-    header: 'Instrument',
+    header: t.colInstrument,
     width: 'flex',
     minWidth: 14,
     priority: 0,
@@ -26,7 +27,7 @@ const COLUMNS: Array<Column<WatchItem>> = [
   },
   {
     key: 'type',
-    header: 'Typ',
+    header: t.colType,
     width: 6,
     priority: 3,
     value: (item) => item.type ?? '',
@@ -34,7 +35,7 @@ const COLUMNS: Array<Column<WatchItem>> = [
   },
   {
     key: 'price',
-    header: 'Kurs',
+    header: t.colPrice,
     width: 14,
     align: 'right',
     priority: 1,
@@ -44,7 +45,7 @@ const COLUMNS: Array<Column<WatchItem>> = [
   },
   {
     key: 'change',
-    header: 'Heute',
+    header: t.colToday,
     width: 11,
     align: 'right',
     priority: 2,
@@ -54,7 +55,7 @@ const COLUMNS: Array<Column<WatchItem>> = [
   },
   {
     key: 'isin',
-    header: 'ISIN',
+    header: t.colIsin,
     width: 14,
     priority: 4,
     value: (item) => item.isin,
@@ -75,8 +76,8 @@ export function WatchlistView({
 
   return (
     <Panel
-      title="Watchlist"
-      meta={items.length > 0 ? `${items.length}` : loading ? 'lädt…' : ''}
+      title={t.tabWatchlist}
+      meta={items.length > 0 ? `${items.length}` : loading ? t.loading : ''}
       focused={focused}
       width={width}
       height={height}
@@ -88,7 +89,7 @@ export function WatchlistView({
         height={bodyHeight}
         selectedIndex={selectedIndex}
         focused={focused}
-        emptyMessage={loading ? 'lädt…' : 'Watchlist ist leer'}
+        emptyMessage={loading ? t.loading : t.watchlistEmpty}
       />
     </Panel>
   )

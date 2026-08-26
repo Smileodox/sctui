@@ -2,6 +2,7 @@ import type React from 'react'
 import { Panel } from '../components/Panel.js'
 import { Table, type Column } from '../components/Table.js'
 import { dateTime, humanizeEnum, moneySigned, number, quantity } from '../format.js'
+import { t } from '../strings.js'
 import { theme, trendColor } from '../theme.js'
 import type { Transaction } from '../sc/normalize.js'
 
@@ -41,7 +42,7 @@ function typeColor(transaction: Transaction): string {
 const COLUMNS: Array<Column<Transaction>> = [
   {
     key: 'date',
-    header: 'Datum',
+    header: t.colDate,
     width: 17,
     priority: 2,
     value: (t) => dateTime(t.date),
@@ -49,7 +50,7 @@ const COLUMNS: Array<Column<Transaction>> = [
   },
   {
     key: 'type',
-    header: 'Typ',
+    header: t.colType,
     width: 15,
     priority: 3,
     value: (t) => humanizeEnum(t.type),
@@ -57,7 +58,7 @@ const COLUMNS: Array<Column<Transaction>> = [
   },
   {
     key: 'name',
-    header: 'Instrument',
+    header: t.colInstrument,
     width: 'flex',
     minWidth: 14,
     priority: 0,
@@ -66,7 +67,7 @@ const COLUMNS: Array<Column<Transaction>> = [
   },
   {
     key: 'qty',
-    header: 'Stück',
+    header: t.colShares,
     width: 10,
     align: 'right',
     priority: 5,
@@ -75,7 +76,7 @@ const COLUMNS: Array<Column<Transaction>> = [
   },
   {
     key: 'price',
-    header: 'Kurs',
+    header: t.colPrice,
     width: 11,
     align: 'right',
     priority: 4,
@@ -84,7 +85,7 @@ const COLUMNS: Array<Column<Transaction>> = [
   },
   {
     key: 'amount',
-    header: 'Betrag',
+    header: t.colAmount,
     width: 15,
     align: 'right',
     priority: 1,
@@ -94,7 +95,7 @@ const COLUMNS: Array<Column<Transaction>> = [
   },
   {
     key: 'status',
-    header: 'Status',
+    header: t.colStatus,
     width: 11,
     priority: 6,
     value: (t) => humanizeEnum(t.status),
@@ -115,8 +116,8 @@ export function TransactionsView({
 
   return (
     <Panel
-      title="Transaktionen"
-      meta={transactions.length > 0 ? `${transactions.length}` : loading ? 'lädt…' : ''}
+      title={t.tabTransactions}
+      meta={transactions.length > 0 ? `${transactions.length}` : loading ? t.loading : ''}
       focused={focused}
       width={width}
       height={height}
@@ -128,7 +129,7 @@ export function TransactionsView({
         height={bodyHeight}
         selectedIndex={selectedIndex}
         focused={focused}
-        emptyMessage={loading ? 'lädt…' : 'Keine Transaktionen'}
+        emptyMessage={loading ? t.loading : t.noTransactions}
       />
     </Panel>
   )

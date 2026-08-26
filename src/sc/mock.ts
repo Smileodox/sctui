@@ -20,6 +20,7 @@ import type {
 } from './normalize.js'
 import type { DataSource, Fetched, FetchOptions, Timeframe } from './client.js'
 import type { Json } from './json.js'
+import { t } from '../strings.js'
 
 interface Instrument {
   isin: string
@@ -170,7 +171,7 @@ function makeTransactions(count: number): Transaction[] {
       date: date.toISOString(),
       type,
       status: i === 0 && rng() > 0.6 ? 'PENDING' : 'EXECUTED',
-      name: isCash ? (type === 'INTEREST' ? 'Scalable Zinsen' : 'SEPA-Überweisung') : instrument.name,
+      name: isCash ? (type === 'INTEREST' ? t.demoInterestName : t.demoTransferName) : instrument.name,
       isin: isCash ? undefined : instrument.isin,
       quantity,
       price,
@@ -229,7 +230,7 @@ function summary(): PortfolioSummary {
   const costBasis = securitiesValue - totalReturn
 
   return {
-    portfolioName: 'Demo-Depot',
+    portfolioName: t.demoPortfolio,
     portfolioId: 'demo-0001',
     currency: 'EUR',
     totalValue,
@@ -277,7 +278,7 @@ export class DemoClient implements DataSource {
   readonly kind = 'demo' as const
 
   whoami(options: FetchOptions = {}): Promise<Fetched<string | undefined>> {
-    return settle('demo@example.com (Demo-Modus)', { demo: true } as Json, 'demo: whoami', options.signal)
+    return settle(t.demoIdentity, { demo: true } as Json, 'demo: whoami', options.signal)
   }
 
   cash(options: FetchOptions = {}): Promise<Fetched<CashBreakdown>> {

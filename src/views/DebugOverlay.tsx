@@ -2,6 +2,7 @@ import { Box, Text } from 'ink'
 import type React from 'react'
 import { Overlay } from '../components/Overlay.js'
 import { truncate } from '../format.js'
+import { t } from '../strings.js'
 import { theme } from '../theme.js'
 import type { Json } from '../sc/json.js'
 
@@ -32,15 +33,15 @@ export function DebugOverlay({
   const innerWidth = Math.max(20, width - 4)
   const bodyHeight = Math.max(1, height - 6)
 
-  const text = payload === undefined ? '(keine Antwort)' : JSON.stringify(payload, null, 2)
+  const text = payload === undefined ? t.debugNoResponse : JSON.stringify(payload, null, 2)
   const allLines = text.split('\n')
   const start = Math.max(0, Math.min(scrollOffset, Math.max(0, allLines.length - bodyHeight)))
   const lines = allLines.slice(start, start + bodyHeight)
 
   return (
     <Overlay
-      title={`Roh-JSON · ${title}`}
-      hint={`${start + 1}–${start + lines.length} / ${allLines.length}  ·  ↑↓ scrollen · esc schließen`}
+      title={`${t.debugTitle} · ${title}`}
+      hint={`${start + 1}–${start + lines.length} / ${allLines.length}  ·  ${t.debugHint}`}
       width={width}
       height={height}
     >

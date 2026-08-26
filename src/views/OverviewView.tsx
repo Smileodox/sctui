@@ -4,6 +4,7 @@ import { Panel } from '../components/Panel.js'
 import { StatTile } from '../components/StatTile.js'
 import { money, moneySigned, number, pad, percent, truncate } from '../format.js'
 import { bar } from '../render/chart.js'
+import { t } from '../strings.js'
 import { theme, trendColor, trendGlyph } from '../theme.js'
 import type { Holding, OvernightAccount, PortfolioSummary } from '../sc/normalize.js'
 
@@ -24,7 +25,7 @@ const TILES_HEIGHT = PANEL_CHROME + 3
 const PANEL_MIN_HEIGHT = PANEL_CHROME + 1
 
 const TILE_GAP = 2
-const TILE_LABELS = ['Wertpapiere', 'Cash', 'Gesamtrendite', 'Positionen'] as const
+const TILE_LABELS = [t.tileSecurities, t.tileCash, t.tileTotalReturn, t.tilePositions] as const
 const TILE_COUNT = TILE_LABELS.length
 /** Letter-spacing doubles a label's width, so it is all-or-nothing across the row. */
 const WIDEST_SPACED_LABEL = Math.max(...TILE_LABELS.map((label) => label.length * 2 - 1))
@@ -62,13 +63,13 @@ export function OverviewView({
 
   return (
     <Box flexDirection="column" width={width} height={height}>
-      <Panel title="Kennzahlen" width={width} height={tilesHeight}>
+      <Panel title={t.panelKeyFigures} width={width} height={tilesHeight}>
         <Box gap={TILE_GAP}>
           <StatTile
-            label="Wertpapiere"
+            label={t.tileSecurities}
             value={money(summary?.securitiesValue, currency)}
             delta={{
-              text: `${moneySigned(summary?.dayChange, currency)} heute`,
+              text: `${moneySigned(summary?.dayChange, currency)} ${t.deltaToday}`,
               direction: summary?.dayChange,
             }}
             width={tileWidth}
@@ -77,11 +78,11 @@ export function OverviewView({
             emphasis
           />
           <StatTile
-            label="Cash"
+            label={t.tileCash}
             value={money(summary?.cash, currency)}
             delta={
               overnight?.interestRatePct !== undefined
-                ? { text: `${percent(overnight.interestRatePct, 2, false)} p.a.`, direction: 0 }
+                ? { text: `${percent(overnight.interestRatePct, 2, false)} ${t.deltaPa}`, direction: 0 }
                 : undefined
             }
             width={tileWidth}
@@ -89,7 +90,7 @@ export function OverviewView({
             rows={tileRows}
           />
           <StatTile
-            label="Gesamtrendite"
+            label={t.tileTotalReturn}
             value={moneySigned(summary?.totalReturn, currency)}
             valueColor={trendColor(summary?.totalReturn)}
             delta={{ text: percent(summary?.totalReturnPct), direction: summary?.totalReturnPct }}
@@ -99,12 +100,12 @@ export function OverviewView({
             emphasis
           />
           <StatTile
-            label="Positionen"
+            label={t.tilePositions}
             value={holdings.length > 0 ? String(holdings.length) : loading ? '···' : '0'}
             delta={
               overnight?.interestAccrued !== undefined
                 ? {
-                    text: `${money(overnight.interestAccrued, currency)} Zinsen`,
+                    text: `${money(overnight.interestAccrued, currency)} ${t.deltaInterest}`,
                     // Aufgelaufene Zinsen sind nie negativ, aber sehr wohl null —
                     // und dann ist ein grünes ▲ eine Aussage, die nicht stimmt.
                     direction: overnight.interestAccrued,
@@ -161,13 +162,13 @@ function AllocationPanel({
 
   return (
     <Panel
-      title="Allokation"
-      meta={hidden > 0 ? `+${hidden} weitere` : ''}
+      title={t.panelAllocation}
+      meta={hidden > 0 ? t.moreCount(hidden) : ''}
       width={width}
       height={height}
     >
       {shown.length === 0 ? (
-        <Text color={theme.dim}>{loading ? 'lädt…' : 'Keine Positionen'}</Text>
+        <Text color={theme.dim}>{loading ? t.loading : t.noPositions}</Text>
       ) : (
         shown.map((holding) => (
           <Box key={holding.isin}>
@@ -216,7 +217,7 @@ function MoversPanel({
   if (withChange.length === 0) {
     lines.push(
       <Text key="empty" color={theme.dim}>
-        {loading ? 'lädt…' : 'Keine Tagesveränderung gemeldet'}
+        {loading ? t.loading : t.noDayChange}
       </Text>,
     )
   } else {
@@ -236,13 +237,13 @@ function MoversPanel({
         for (const h of movers) lines.push(<MoverRow key={h.isin} holding={h} width={innerWidth} />)
       }
     }
-    section('gainers', 'Gewinner', gainers)
+    section('gainers', t.gainers, gainers)
     lines.push(<Text key="gap"> </Text>)
-    section('losers', 'Verlierer', losers)
+    section('losers', t.losers, losers)
   }
 
   return (
-    <Panel title="Heute" width={width} height={height}>
+    <Panel title={t.panelMovers} width={width} height={height}>
       {lines.slice(0, rows)}
     </Panel>
   )

@@ -1,9 +1,9 @@
 /**
- * Display formatting. German locale by default, because that is what the
- * Scalable app itself uses and what most of its users read fluently.
+ * Display formatting. The locale comes from `strings.ts` — the same one that
+ * picks the UI language — so labels and number formats always agree.
  */
 
-const LOCALE = process.env['SCTUI_LOCALE'] ?? 'de-DE'
+import { LOCALE } from './strings.js'
 
 const moneyFmt = new Map<string, Intl.NumberFormat>()
 

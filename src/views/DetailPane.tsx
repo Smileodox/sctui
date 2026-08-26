@@ -3,6 +3,7 @@ import type React from 'react'
 import { Chart } from '../components/Chart.js'
 import { Panel } from '../components/Panel.js'
 import { money, number, percent, truncate } from '../format.js'
+import { t } from '../strings.js'
 import { theme, trendColor, trendGlyph } from '../theme.js'
 import { type Timeframe } from '../sc/client.js'
 import type { ChartSeries, Quote } from '../sc/normalize.js'
@@ -67,8 +68,8 @@ export function DetailPane({
 
   return (
     <Panel
-      title="Instrument"
-      meta={`${timeframe} · [ ] ändern`}
+      title={t.panelInstrument}
+      meta={`${timeframe} · ${t.timeframeHint}`}
       focused={focused}
       width={width}
       height={height}
@@ -81,7 +82,7 @@ export function DetailPane({
           <Box>
             <Text color={theme.dim}>{isin}</Text>
             {quote?.type ? <Text color={theme.dim}> · {quote.type}</Text> : null}
-            {quote?.stale ? <Text color={theme.warn}> · Kurs veraltet</Text> : null}
+            {quote?.stale ? <Text color={theme.warn}> · {t.quoteStale}</Text> : null}
           </Box>
         ) : null}
         {keep.has('topGap') ? <Text> </Text> : null}
@@ -95,7 +96,7 @@ export function DetailPane({
             {trendGlyph(quote?.changePct ?? quote?.change)} {percent(quote?.changePct)}
           </Text>
           <Box flexGrow={1} />
-          {loading ? <Text color={theme.dim}>lädt…</Text> : null}
+          {loading ? <Text color={theme.dim}>{t.loading}</Text> : null}
         </Box>
 
         {keep.has('grid') ? <QuoteGrid quote={quote} width={innerWidth} /> : null}
@@ -111,7 +112,7 @@ export function DetailPane({
           height={chartHeight}
           currency={currency}
           caption={timeframe}
-          emptyMessage={loading ? 'lädt…' : 'Keine Kursdaten'}
+          emptyMessage={loading ? t.loading : t.noPriceData}
         />
       ) : null}
     </Panel>
@@ -134,11 +135,11 @@ function QuoteGrid({ quote, width }: { quote?: Quote; width: number }): React.Re
     quote?.bid !== undefined && quote?.ask !== undefined ? quote.ask - quote.bid : undefined
 
   const all: Array<[string, string]> = [
-    ['Bid', number(quote?.bid, 2)],
-    ['Ask', number(quote?.ask, 2)],
-    ['Vortag', number(quote?.previousClose, 2)],
-    ['Spread', number(spread, 2)],
-    ['seit Kauf', percent(quote?.sinceBuyPct)],
+    [t.quoteBid, number(quote?.bid, 2)],
+    [t.quoteAsk, number(quote?.ask, 2)],
+    [t.quotePrevClose, number(quote?.previousClose, 2)],
+    [t.quoteSpread, number(spread, 2)],
+    [t.quoteSinceBuy, percent(quote?.sinceBuyPct)],
   ]
 
   // Keep Bid/Ask first, then the previous close, then the extras.

@@ -2,6 +2,7 @@ import { Box, Text } from 'ink'
 import type React from 'react'
 import { date as fmtDate, number, pad, percent } from '../format.js'
 import { axisTicks, brailleChart } from '../render/chart.js'
+import { t } from '../strings.js'
 import { theme, trendColor } from '../theme.js'
 import type { ChartPoint } from '../sc/normalize.js'
 
@@ -29,14 +30,14 @@ export function Chart({
   height,
   currency = 'EUR',
   caption,
-  emptyMessage = 'Keine Kursdaten',
+  emptyMessage = t.noPriceData,
 }: ChartProps): React.ReactElement {
   const values = points.map((p) => p.v).filter((v) => Number.isFinite(v))
 
   if (values.length < 2 || width < 12 || height < 3) {
     return (
       <Box height={Math.max(1, height)} alignItems="center">
-        <Text color={theme.dim}>{values.length > 0 ? 'Zu wenig Punkte für einen Chart' : emptyMessage}</Text>
+        <Text color={theme.dim}>{values.length > 0 ? t.tooFewPoints : emptyMessage}</Text>
       </Box>
     )
   }

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Overlay } from '../components/Overlay.js'
 import { Table, type Column } from '../components/Table.js'
 import { money, percent } from '../format.js'
+import { t } from '../strings.js'
 import { useResource } from '../hooks/useResource.js'
 import { theme, trendColor, trendGlyph } from '../theme.js'
 import type { DataSource } from '../sc/client.js'
@@ -23,18 +24,18 @@ const DEBOUNCE_MS = 280
 const COLUMNS: Array<Column<SearchResult>> = [
   {
     key: 'name',
-    header: 'Instrument',
+    header: t.colInstrument,
     width: 'flex',
     minWidth: 16,
     priority: 0,
     value: (r) => r.name,
     color: () => theme.fg,
   },
-  { key: 'type', header: 'Typ', width: 10, priority: 4, value: (r) => r.type ?? '', color: () => theme.dim },
-  { key: 'isin', header: 'ISIN', width: 14, priority: 1, value: (r) => r.isin, color: () => theme.dim },
+  { key: 'type', header: t.colType, width: 10, priority: 4, value: (r) => r.type ?? '', color: () => theme.dim },
+  { key: 'isin', header: t.colIsin, width: 14, priority: 1, value: (r) => r.isin, color: () => theme.dim },
   {
     key: 'price',
-    header: 'Kurs',
+    header: t.colPrice,
     width: 13,
     align: 'right',
     priority: 2,
@@ -43,7 +44,7 @@ const COLUMNS: Array<Column<SearchResult>> = [
   },
   {
     key: 'change',
-    header: 'Heute',
+    header: t.colToday,
     width: 11,
     align: 'right',
     priority: 3,
@@ -98,7 +99,7 @@ export function SearchOverlay({
   const bodyHeight = Math.max(1, height - 8)
 
   return (
-    <Overlay title="Suche" hint="↑↓ auswählen · ⏎ öffnen · esc schließen" width={width} height={height}>
+    <Overlay title={t.searchTitle} hint={t.searchHint} width={width} height={height}>
       <Box marginBottom={1}>
         <Text color={theme.accent}>❯ </Text>
         <TextInput
@@ -108,14 +109,14 @@ export function SearchOverlay({
             const picked = rows[selectedIndex]
             if (picked) onSelect(picked)
           }}
-          placeholder="Name, Symbol oder ISIN…"
+          placeholder={t.searchPlaceholder}
           showCursor
           focus
         />
       </Box>
 
       {debounced.length < 2 ? (
-        <Text color={theme.dim}>Mindestens 2 Zeichen eingeben.</Text>
+        <Text color={theme.dim}>{t.searchMinChars}</Text>
       ) : results.error ? (
         <Text color={theme.error}>{results.error.message}</Text>
       ) : (
@@ -126,7 +127,7 @@ export function SearchOverlay({
           height={bodyHeight}
           selectedIndex={selectedIndex}
           focused
-          emptyMessage={results.loading ? 'sucht…' : 'Nichts gefunden'}
+          emptyMessage={results.loading ? t.searching : t.searchEmpty}
         />
       )}
     </Overlay>

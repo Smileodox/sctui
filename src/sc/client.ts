@@ -8,6 +8,7 @@
 
 import { runSc, ScError, type ScRunOptions } from './exec.js'
 import { extractJson, unwrapEnvelope, type Json } from './json.js'
+import { t } from '../strings.js'
 import {
   normalizeCash,
   normalizeChart,
@@ -349,7 +350,7 @@ export class ScClient implements DataSource {
     // statt säubern, damit sichtbar bleibt, warum nichts gesucht wurde.
     if (query.trimStart().startsWith('-')) {
       return Promise.reject(
-        new ScError('SC_FORBIDDEN', 'Suchanfragen dürfen nicht mit "-" beginnen', {
+        new ScError('SC_FORBIDDEN', t.searchNoDash, {
           argv: ['broker', 'search', query],
         }),
       )

@@ -1,6 +1,7 @@
 import { Box, Text } from 'ink'
 import type React from 'react'
 import { clock, relative, truncate } from '../format.js'
+import { t } from '../strings.js'
 import { glyphs, theme } from '../theme.js'
 
 export interface StatusBarProps {
@@ -40,7 +41,7 @@ export function StatusBar({
         keys={keys}
         loading={loading}
         spinnerFrame={spinnerFrame}
-        right={`${autoRefreshSeconds !== null ? `auto ${autoRefreshSeconds}s` : 'auto aus'} · ${
+        right={`${autoRefreshSeconds !== null ? t.auto(autoRefreshSeconds) : t.autoOff} · ${
           fetchedAt ? `${clock(fetchedAt)} (${relative(fetchedAt)})` : '—'
         }`}
       />

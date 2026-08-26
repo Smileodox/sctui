@@ -15,6 +15,7 @@
  */
 
 import { execFile } from 'node:child_process'
+import { t } from '../strings.js'
 
 export type ScErrorCode =
   | 'SC_NOT_FOUND'
@@ -50,17 +51,17 @@ export class ScError extends Error {
   get hint(): string {
     switch (this.code) {
       case 'SC_NOT_FOUND':
-        return 'sc nicht gefunden — `brew install scalable-cli`, oder starte mit --demo'
+        return t.hintScNotFound
       case 'SC_AUTH':
-        return 'Nicht eingeloggt — `sc login` ausführen (CLI vorher im Scalable-Profil aktivieren)'
+        return t.hintScAuth
       case 'SC_TIMEOUT':
-        return 'sc hat nicht rechtzeitig geantwortet'
+        return t.hintScTimeout
       case 'SC_PARSE':
-        return 'Antwort war kein gültiges JSON — mit `d` das Rohformat ansehen'
+        return t.hintScParse
       case 'SC_FORBIDDEN':
-        return 'Befehl blockiert: diese App ist read-only'
+        return t.hintScForbidden
       case 'SC_ABORTED':
-        return 'Abgebrochen'
+        return t.hintScAborted
       default:
         return this.message
     }

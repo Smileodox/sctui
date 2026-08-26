@@ -1,6 +1,7 @@
 import { Box, Text } from 'ink'
 import type React from 'react'
 import { pad } from '../format.js'
+import { t } from '../strings.js'
 import { theme } from '../theme.js'
 
 export interface Column<T> {
@@ -115,7 +116,7 @@ export function Table<T>({
   height,
   selectedIndex,
   focused = true,
-  emptyMessage = 'Keine Daten',
+  emptyMessage = t.noDataTable,
 }: TableProps<T>): React.ReactElement {
   const bodyHeight = Math.max(1, height)
   const hasScrollbar = rows.length > bodyHeight

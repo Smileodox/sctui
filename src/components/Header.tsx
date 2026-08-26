@@ -1,6 +1,7 @@
 import { Box, Text } from 'ink'
 import type React from 'react'
 import { money, moneySigned, percent, truncate } from '../format.js'
+import { t } from '../strings.js'
 import { theme, trendColor, trendGlyph } from '../theme.js'
 import type { PortfolioSummary } from '../sc/normalize.js'
 
@@ -26,9 +27,9 @@ export function Header({ summary, width, mode, identity, loading }: HeaderProps)
   if (!summary) {
     return (
       <Box flexDirection="column" width={width}>
-        <TitleRow width={width} mode={mode} identity={identity} portfolio="Depot" />
+        <TitleRow width={width} mode={mode} identity={identity} portfolio={t.portfolioFallback} />
         <Box width={width}>
-          <Text color={theme.dim}> {loading ? 'lädt…' : 'keine Daten'}</Text>
+          <Text color={theme.dim}> {loading ? t.loading : t.noData}</Text>
         </Box>
       </Box>
     )
@@ -36,7 +37,7 @@ export function Header({ summary, width, mode, identity, loading }: HeaderProps)
 
   return (
     <Box flexDirection="column" width={width}>
-      <TitleRow width={width} mode={mode} identity={identity} portfolio={summary.portfolioName ?? 'Depot'} />
+      <TitleRow width={width} mode={mode} identity={identity} portfolio={summary.portfolioName ?? t.portfolioFallback} />
 
       <SummaryRow
         width={width}
@@ -142,10 +143,10 @@ function SummaryRow({
       { text: '   ', color: theme.dim },
       { text: compact ? dayShort : dayFull, color: dayColor },
     ]
-    if (withLabel) segments.push({ text: ' heute', color: theme.dim })
+    if (withLabel) segments.push({ text: t.headerToday, color: theme.dim })
     if (withTotal) {
       segments.push({ text: SEP, color: theme.dim })
-      segments.push({ text: 'Gesamt ', color: theme.dim })
+      segments.push({ text: t.headerTotal, color: theme.dim })
       segments.push({ text: compact ? totalShort : totalFull, color: totalColor })
     }
     return segments
@@ -155,7 +156,7 @@ function SummaryRow({
     cash === undefined
       ? []
       : [
-          { text: 'Cash ', color: theme.dim },
+          { text: t.headerCash, color: theme.dim },
           { text: `${cash} `, color: theme.muted },
         ]
 
