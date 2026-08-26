@@ -9,6 +9,11 @@ offiziellen [Scalable CLI](https://github.com/ScalableCapital/scalable-cli).
 Übersicht, Positionen, Watchlist, Transaktionen, Detailansicht mit Chart und
 Quote — mit Auto-Refresh.
 
+![sctui im Demo-Modus](https://raw.githubusercontent.com/Smileodox/sctui/main/assets/demo.gif)
+
+*Aufgenommen gegen `sctui --demo` — generierte Daten, kein Account nötig.
+Reproduzierbar mit [`vhs assets/demo.tape`](assets/demo.tape).*
+
 > **Inoffizielles Projekt.** Nicht mit der Scalable Capital GmbH verbunden,
 > nicht von ihr unterstützt. Keine Anlageberatung — Anzeigen können falsch,
 > unvollständig oder verzögert sein. Die App ist strukturell read-only: sie
