@@ -50,6 +50,13 @@ Durchgesetzt wird das in [`src/sc/exec.ts`](src/sc/exec.ts):
   `--accept-unsuitable`, `--yes`, `-y`).
 - Jeder Aufruf geht durch `assertReadOnly()`, bevor ein Prozess gestartet wird.
 
+- [`tests/exec.test.ts`](tests/exec.test.ts) beweist das in CI: Pfad-Exaktheit,
+  Flag-Formen, Case-Sensitivität. [`scripts/check-readonly-boundary.mjs`](scripts/check-readonly-boundary.mjs)
+  stellt zusätzlich sicher, dass `child_process` nirgendwo sonst in `src/`
+  auftaucht — es gibt keinen Weg an der Allowlist vorbei.
+
+Wie man das selbst in fünf Minuten auditiert, steht in [SECURITY.md](SECURITY.md).
+
 Wer die App erweitert: neue Kommandos gehören nur dann in
 `READ_ONLY_COMMANDS`, wenn sie ausschließlich lesen.
 
@@ -68,9 +75,14 @@ Danach im Scalable-Profil unter **Einstellungen → Sicherheit** den Punkt
 **„Scalable CLI"** aktivieren, sonst schlägt der Login fehl. Dann:
 
 ```sh
-sc login     # OAuth Device-Code im Browser
-sc whoami    # prüfen, ob die Session steht
+sc login --local-read-only   # OAuth Device-Code im Browser
+sc whoami                    # prüfen, ob die Session steht
 ```
+
+`--local-read-only` legt die Session schreibgeschützt an: schon die offizielle
+Binary verweigert dann jede Mutation. sctui empfiehlt das und braucht nie mehr
+— die [eigene Allowlist](#read-only-strukturell) ist damit die zweite
+Verteidigungslinie, nicht die einzige.
 
 Und das Dashboard:
 

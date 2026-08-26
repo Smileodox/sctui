@@ -344,6 +344,16 @@ export class ScClient implements DataSource {
   }
 
   search(query: string, options: FetchOptions = {}): Promise<Fetched<SearchResult[]>> {
+    // Die Suchanfrage ist der einzige Nutzertext, der als Positionsargument an
+    // sc geht — mit führendem "-" würde die CLI sie als Flag lesen. Abweisen
+    // statt säubern, damit sichtbar bleibt, warum nichts gesucht wurde.
+    if (query.trimStart().startsWith('-')) {
+      return Promise.reject(
+        new ScError('SC_FORBIDDEN', 'Suchanfragen dürfen nicht mit "-" beginnen', {
+          argv: ['broker', 'search', query],
+        }),
+      )
+    }
     return this.fetch(
       `search:${query}`,
       'search',

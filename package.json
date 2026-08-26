@@ -29,6 +29,7 @@
     "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
     "start": "node dist/cli.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node scripts/check-readonly-boundary.mjs && node --import tsx --test tests/*.test.ts",
     "snapshot": "tsx scripts/snapshot.tsx",
     "check:layout": "node scripts/check-layout.mjs"
   },

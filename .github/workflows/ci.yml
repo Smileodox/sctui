@@ -1,0 +1,27 @@
+# Jeder Lauf beweist die beiden Kernversprechen öffentlich nach:
+# die Read-only-Garantie (Boundary-Check + Unit-Tests) und die
+# Layout-Disziplin (110-Fälle-Matrix gegen virtuelle Terminals).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # Boundary-Check (child_process nur in exec.ts) + Read-only-Tests.
+      - run: npm test
+      - run: npm run build
+      # Die volle Matrix: Größen × Tabs × Overlays × Fehlerpfade, inklusive
+      # Überlappungs-Erkennung. Bewusst nicht gekürzt — sie ist das Qualitätssignal.
+      - run: npm run check:layout

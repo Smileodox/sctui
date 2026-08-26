@@ -21,13 +21,15 @@ const INSTALL_STEPS: Step[] = [
   { text: '', command: 'brew trust --formula ScalableCapital/tap/scalable-cli' },
   { text: '', command: 'brew install scalable-cli' },
   { text: 'CLI im Profil freischalten (Einstellungen → Sicherheit → "Scalable CLI")' },
-  { text: 'Einloggen (OAuth Device-Code im Browser)', command: 'sc login' },
+  // --local-read-only lässt schon die offizielle Binary Mutationen verweigern —
+  // eine zweite Schicht unter unserer Allowlist, und sctui braucht nie mehr.
+  { text: 'Einloggen (OAuth Device-Code im Browser)', command: 'sc login --local-read-only' },
   { text: 'Prüfen, ob die Session steht', command: 'sc whoami' },
 ]
 
 const LOGIN_STEPS: Step[] = [
   { text: '"Scalable CLI" im Profil unter Einstellungen → Sicherheit aktivieren' },
-  { text: 'Einloggen (OAuth Device-Code im Browser)', command: 'sc login' },
+  { text: 'Einloggen (OAuth Device-Code im Browser)', command: 'sc login --local-read-only' },
   { text: 'Prüfen, ob die Session steht', command: 'sc whoami' },
 ]
 
