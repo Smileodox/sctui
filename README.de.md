@@ -12,7 +12,7 @@ mit Auto-Refresh.
 > sein. Die aktuelle Version ist strikt **read-only**: sie kann keine Order
 > platzieren und nichts an deinem Depot ändern.
 
-![sctui im Demo-Modus](https://raw.githubusercontent.com/Smileodox/sctui/main/assets/demo.gif)
+![sctui im Demo-Modus](assets/demo.gif)
 
 ## Schnellstart
 

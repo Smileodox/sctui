@@ -17,7 +17,7 @@ chart and quote — auto-refreshing.
 > change anything in your account
 > ([how that is enforced](#read-only-by-construction)).
 
-![sctui in demo mode](https://raw.githubusercontent.com/Smileodox/sctui/main/assets/demo.gif)
+![sctui in demo mode](assets/demo.gif)
 
 *Recorded against `sctui --demo` — generated data, no account needed.
 Reproducible with [`vhs assets/demo.tape`](assets/demo.tape).*
