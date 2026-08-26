@@ -27,7 +27,7 @@
     "NOTICE"
   ],
   "bin": {
-    "sctui": "./dist/cli.js"
+    "sctui": "dist/cli.js"
   },
   "scripts": {
     "dev": "tsx src/cli.tsx",
