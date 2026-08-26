@@ -9,14 +9,14 @@ import { t } from './strings.js'
 interface Options {
   demo: boolean
   refreshSeconds: number | null
-  tab: 'overview' | 'holdings' | 'watchlist' | 'transactions'
+  tab: 'overview' | 'holdings' | 'savings' | 'watchlist' | 'transactions'
   scBin?: string
   altScreen: boolean
 }
 
 const USAGE = t.usage
 
-const VALID_TABS = ['overview', 'holdings', 'watchlist', 'transactions'] as const
+const VALID_TABS = ['overview', 'holdings', 'savings', 'watchlist', 'transactions'] as const
 
 function parseArgs(argv: string[]): Options | { help: true } | { version: true } | { error: string } {
   const options: Options = {
@@ -82,7 +82,7 @@ if ('help' in parsed) {
 }
 
 if ('version' in parsed) {
-  process.stdout.write('sctui 0.1.0\n')
+  process.stdout.write('sctui 0.2.0\n')
   process.exit(0)
 }
 

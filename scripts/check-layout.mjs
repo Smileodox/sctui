@@ -40,7 +40,7 @@ const SHORT_SIZES = [
   [118, 16],
   [118, 17],
 ]
-const TABS = ['overview', 'holdings', 'watchlist', 'transactions']
+const TABS = ['overview', 'holdings', 'savings', 'watchlist', 'transactions']
 
 const FAKE_SC = path.join(root, 'scripts', 'fake-sc')
 

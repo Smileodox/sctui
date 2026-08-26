@@ -23,7 +23,7 @@ const args = process.argv.slice(2)
 const positional = args.filter((a) => !a.startsWith('--'))
 const columns = Number(positional[0] ?? 150)
 const rows = Number(positional[1] ?? 44)
-const tab = (positional[2] ?? 'overview') as 'overview' | 'holdings' | 'watchlist' | 'transactions'
+const tab = (positional[2] ?? 'overview') as 'overview' | 'holdings' | 'savings' | 'watchlist' | 'transactions'
 const keysToSend = args.find((a) => a.startsWith('--keys='))?.slice('--keys='.length) ?? ''
 const waitMs = Number(args.find((a) => a.startsWith('--wait='))?.slice('--wait='.length) ?? 1200)
 const scBin = args.find((a) => a.startsWith('--sc-bin='))?.slice('--sc-bin='.length)

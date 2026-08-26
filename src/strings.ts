@@ -40,6 +40,7 @@ const en = {
   tabHoldings: 'Positions',
   tabWatchlist: 'Watchlist',
   tabTransactions: 'Transactions',
+  tabSavings: 'Savings plans',
 
   // Header
   portfolioFallback: 'Portfolio',
@@ -103,9 +104,22 @@ const en = {
   colDate: 'Date',
   colAmount: 'Amount',
   colStatus: 'Status',
+  colInterval: 'Interval',
+  colNextExec: 'Next',
   noDataTable: 'No data',
   watchlistEmpty: 'Watchlist is empty',
   noTransactions: 'No transactions',
+  noSavingsPlans: 'No savings plans',
+  frequencyLabel: (raw: string): string =>
+    ({
+      MONTHLY: 'monthly',
+      WEEKLY: 'weekly',
+      BIWEEKLY: 'every 2 weeks',
+      TWICE_A_MONTH: 'twice a month',
+      QUARTERLY: 'quarterly',
+    })[raw] ?? raw.toLowerCase().replace(/_/g, ' '),
+  unknownName: 'Unknown',
+  scReportedError: 'sc reported an error',
 
   // Detail pane
   panelInstrument: 'Instrument',
@@ -204,7 +218,7 @@ const en = {
     --demo                 Sample data instead of real (no sc, no account needed)
     --refresh <seconds>    Auto-refresh interval (default: 60)
     --no-refresh           Disable auto-refresh
-    --tab <name>           Start tab: overview | holdings | watchlist | transactions
+    --tab <name>           Start tab: overview | holdings | savings | watchlist | transactions
     --sc-bin <path>        Alternative path to the sc binary
     --no-alt-screen        Render in the normal buffer (useful for debugging)
     -h, --help             This help
@@ -234,6 +248,7 @@ const de: Strings = {
   tabHoldings: 'Positionen',
   tabWatchlist: 'Watchlist',
   tabTransactions: 'Transaktionen',
+  tabSavings: 'Sparpläne',
 
   portfolioFallback: 'Depot',
   loading: 'lädt…',
@@ -291,9 +306,22 @@ const de: Strings = {
   colDate: 'Datum',
   colAmount: 'Betrag',
   colStatus: 'Status',
+  colInterval: 'Intervall',
+  colNextExec: 'Nächste',
   noDataTable: 'Keine Daten',
   watchlistEmpty: 'Watchlist ist leer',
   noTransactions: 'Keine Transaktionen',
+  noSavingsPlans: 'Keine Sparpläne',
+  frequencyLabel: (raw: string): string =>
+    ({
+      MONTHLY: 'monatlich',
+      WEEKLY: 'wöchentlich',
+      BIWEEKLY: 'alle 2 Wochen',
+      TWICE_A_MONTH: '2× im Monat',
+      QUARTERLY: 'vierteljährlich',
+    })[raw] ?? raw.toLowerCase().replace(/_/g, ' '),
+  unknownName: 'Unbekannt',
+  scReportedError: 'sc meldete einen Fehler',
 
   panelInstrument: 'Instrument',
   timeframeHint: '[ ] ändern',
@@ -384,7 +412,7 @@ const de: Strings = {
     --demo                 Beispieldaten statt echter (kein sc, kein Account nötig)
     --refresh <sekunden>   Auto-Refresh-Intervall (Standard: 60)
     --no-refresh           Auto-Refresh aus
-    --tab <name>           Starttab: overview | holdings | watchlist | transactions
+    --tab <name>           Starttab: overview | holdings | savings | watchlist | transactions
     --sc-bin <pfad>        Abweichender Pfad zur sc-Binary
     --no-alt-screen        Im normalen Puffer rendern (nützlich zum Debuggen)
     -h, --help             Diese Hilfe

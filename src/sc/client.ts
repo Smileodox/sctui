@@ -16,6 +16,7 @@ import {
   normalizeIdentity,
   normalizeOvernight,
   normalizeQuote,
+  normalizeSavingsPlans,
   normalizeSearch,
   normalizeSummary,
   normalizeTransactions,
@@ -26,6 +27,7 @@ import {
   type OvernightAccount,
   type PortfolioSummary,
   type Quote,
+  type SavingsPlan,
   type SearchResult,
   type Transaction,
   type WatchItem,
@@ -59,6 +61,7 @@ export interface DataSource {
   holdings(options?: FetchOptions): Promise<Fetched<Holding[]>>
   watchlist(options?: FetchOptions): Promise<Fetched<WatchItem[]>>
   transactions(options?: FetchOptions): Promise<Fetched<Transaction[]>>
+  savingsPlans(options?: FetchOptions): Promise<Fetched<SavingsPlan[]>>
   overnight(options?: FetchOptions): Promise<Fetched<OvernightAccount>>
   quote(isin: string, options?: FetchOptions): Promise<Fetched<Quote>>
   chart(isin: string, timeframe: Timeframe, options?: FetchOptions): Promise<Fetched<ChartSeries>>
@@ -78,6 +81,7 @@ const TTL_MS: Record<string, number> = {
   holdings: 20_000,
   watchlist: 20_000,
   transactions: 60_000,
+  savingsPlans: 5 * 60_000,
   overnight: 60_000,
   quote: 10_000,
   chart: 60_000,
@@ -114,7 +118,7 @@ function envelopeError(
   stdout: string,
   stderr: string,
 ): ScError {
-  const message = error.message ?? error.code ?? 'sc meldete einen Fehler'
+  const message = error.message ?? error.code ?? t.scReportedError
   const hint = error.hints?.[0]
   const auth = AUTH_PATTERN.test(`${error.code ?? ''} ${message}`)
   return new ScError(auth ? 'SC_AUTH' : 'SC_FAILED', hint ? `${message} — ${hint}` : message, {
@@ -305,6 +309,17 @@ export class ScClient implements DataSource {
       ['broker', 'transactions'],
       ['--page-size', String(TRANSACTION_PAGE_SIZE), '--json'],
       (payload) => normalizeTransactions(payload),
+      options,
+    )
+  }
+
+  savingsPlans(options: FetchOptions = {}): Promise<Fetched<SavingsPlan[]>> {
+    return this.fetch(
+      'savingsPlans',
+      'savingsPlans',
+      ['broker', 'savings-plans'],
+      ['--json'],
+      (payload) => normalizeSavingsPlans(payload),
       options,
     )
   }

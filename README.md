@@ -8,8 +8,8 @@
 
 A terminal dashboard for your Scalable Capital portfolio, built on the
 official [Scalable CLI](https://github.com/ScalableCapital/scalable-cli).
-Overview, positions, watchlist, transactions, an instrument detail pane with
-chart and quote — auto-refreshing.
+Overview, positions, savings plans, watchlist, transactions, an instrument
+detail pane with chart and quote — auto-refreshing.
 
 > **Unofficial project.** Not affiliated with or endorsed by Scalable Capital
 > GmbH. Not investment advice — figures can be wrong, incomplete or delayed.
@@ -76,7 +76,7 @@ sctui [options]
   --demo                 Sample data instead of real (no sc, no account needed)
   --refresh <seconds>    Auto-refresh interval (default: 60, minimum: 5)
   --no-refresh           Disable auto-refresh
-  --tab <name>           Start tab: overview | holdings | watchlist | transactions
+  --tab <name>           Start tab: overview | holdings | savings | watchlist | transactions
   --sc-bin <path>        Alternative path to the sc binary
   --no-alt-screen        Render in the normal buffer (useful for debugging)
   -h, --help             Help
@@ -90,7 +90,7 @@ format.
 
 | Key | Action |
 | --- | --- |
-| `1` – `4` | Jump to tab |
+| `1` – `5` | Jump to tab |
 | `tab` / `⇧tab` | Next / previous tab |
 | `↑` `↓` · `j` `k` | Move selection |
 | `g` / `G` | Top / bottom of list |
@@ -234,8 +234,6 @@ collapses to zero and lets text run together instead of clipping it.
 
 Rough order — driven by what users actually ask for:
 
-- **Savings plans tab** — rate, interval, next execution (`broker savings-plans`
-  is already on the allowlist)
 - **Transaction details** — `⏎` on a transaction opens `broker transaction details`
 - **News in the detail pane** — `broker security-news` per instrument
 - **Price alerts (read view)** — with distance-to-trigger

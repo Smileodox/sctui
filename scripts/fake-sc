@@ -147,6 +147,29 @@ JSON
 JSON
     ;;
 
+  "broker savings-plans")
+    # Mirrors sc 1.0.0: plan rows carry no currency of their own, the redundant
+    # epoch-day twin sits beside the ISO date, and the total is pre-summed.
+    cat <<JSON
+{"ok":true,"command":"broker.savings-plans","data":{$ACCOUNT,
+ "result":{$ACCOUNT,"count":3,"crypto_count":0,"non_crypto_count":3,
+  "total_savings_plan_amount":185.53,
+  "items":[
+   {"amount":150,"day_of_month":1,"dynamization_rate":0,"frequency":"MONTHLY",
+    "isin":"IE00BK5BQT80","kind":"security","name":"Vanguard FTSE All-World (Acc)",
+    "next_execution_date":"2026-09-01","next_execution_epoch_day":20697,
+    "payment_method":"REFERENCE_ACCOUNT","security_type":"ETF"},
+   {"amount":25.53,"day_of_month":7,"dynamization_rate":0,"frequency":"MONTHLY",
+    "isin":"IE00B4L5Y983","kind":"security","name":"iShares Core MSCI World (Acc)",
+    "next_execution_date":"2026-09-07","next_execution_epoch_day":20703,
+    "payment_method":"BUYING_POWER_WITH_REFERENCE_ACCOUNT_FALLBACK","security_type":"ETF"},
+   {"amount":10,"day_of_month":15,"dynamization_rate":0,"frequency":"QUARTERLY",
+    "isin":"US0378331005","kind":"security","name":"Apple",
+    "next_execution_date":"2026-09-15","next_execution_epoch_day":20711,
+    "payment_method":"REFERENCE_ACCOUNT","security_type":"STOCK"}]}}}
+JSON
+    ;;
+
   "broker transactions")
     # The label comes from `security_transaction_type` where there is one, then
     # `side`, then `type` — and a cash transaction carries neither a quantity nor

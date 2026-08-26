@@ -14,6 +14,7 @@ import type {
   OvernightAccount,
   PortfolioSummary,
   Quote,
+  SavingsPlan,
   SearchResult,
   Transaction,
   WatchItem,
@@ -244,6 +245,17 @@ function summary(): PortfolioSummary {
   }
 }
 
+/** The next occurrence of a day-of-month, as an ISO date. */
+function nextExecutionIso(dayOfMonth: number): string {
+  const now = new Date()
+  const next = new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= dayOfMonth ? 1 : 0), dayOfMonth)
+  // Formatted from local parts — toISOString() converts to UTC first, which
+  // slides a local midnight back to the previous day.
+  const month = String(next.getMonth() + 1).padStart(2, '0')
+  const day = String(next.getDate()).padStart(2, '0')
+  return `${next.getFullYear()}-${month}-${day}`
+}
+
 async function settle<T>(value: T, raw: Json, command: string, signal?: AbortSignal): Promise<Fetched<T>> {
   const started = Date.now()
   await new Promise<void>((resolve, reject) => {
@@ -313,6 +325,35 @@ export class DemoClient implements DataSource {
       raw: { isin: instrument.isin, name: instrument.name } as Json,
     }))
     return settle(value, value.map((w) => w.raw) as Json, 'demo: sc broker watchlist --json', options.signal)
+  }
+
+  savingsPlans(options: FetchOptions = {}): Promise<Fetched<SavingsPlan[]>> {
+    // Instrument index, monthly rate, execution day — the two world ETFs and gold.
+    const PLANS: Array<[number, number, number]> = [
+      [0, 150, 1],
+      [1, 100, 15],
+      [6, 25, 1],
+    ]
+    const value: SavingsPlan[] = PLANS.map(([index, amount, day]) => {
+      const instrument = INSTRUMENTS[index] as Instrument
+      return {
+        isin: instrument.isin,
+        name: instrument.name,
+        type: instrument.type,
+        currency: 'EUR',
+        amount,
+        frequency: 'MONTHLY',
+        dayOfMonth: day,
+        nextExecution: nextExecutionIso(day),
+        raw: { isin: instrument.isin, amount, frequency: 'MONTHLY', day_of_month: day } as Json,
+      }
+    })
+    return settle(
+      value,
+      value.map((plan) => plan.raw) as Json,
+      'demo: sc broker savings-plans --json',
+      options.signal,
+    )
   }
 
   transactions(options: FetchOptions = {}): Promise<Fetched<Transaction[]>> {

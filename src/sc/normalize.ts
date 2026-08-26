@@ -13,6 +13,7 @@
  */
 
 import { bool, get, getCurrency, getList, getNum, getStr, isRecord, type Json } from './json.js'
+import { t } from '../strings.js'
 
 /** `get` then `bool` — shallow, since flags are never nested. */
 function getBool(source: unknown, candidates: readonly string[]): boolean | undefined {
@@ -76,6 +77,23 @@ export interface WatchItem {
   price?: number
   changePct?: number
   stale?: boolean
+  raw: Json
+}
+
+export interface SavingsPlan {
+  isin: string
+  name: string
+  type?: string
+  currency: string
+  /** Plan rate per execution, in the account currency. */
+  amount?: number
+  /** Raw CLI enum, e.g. `MONTHLY` — rendered via `t.frequencyLabel`. */
+  frequency?: string
+  dayOfMonth?: number
+  /** ISO date of the next execution. */
+  nextExecution?: string
+  dynamizationRate?: number
+  paymentMethod?: string
   raw: Json
 }
 
@@ -395,7 +413,7 @@ export function normalizeHoldings(payload: Json | undefined, fallbackCurrency = 
 
     return {
       isin: getStr(row, ISIN_KEYS, true) ?? '—',
-      name: getStr(row, NAME_KEYS, true) ?? getStr(row, ISIN_KEYS, true) ?? 'Unbekannt',
+      name: getStr(row, NAME_KEYS, true) ?? getStr(row, ISIN_KEYS, true) ?? t.unknownName,
       type: getStr(row, TYPE_KEYS),
       currency,
       quantity,
@@ -428,12 +446,39 @@ export function normalizeWatchlist(payload: Json | undefined, fallbackCurrency =
   const rows = getList(payload, ['items', 'watchlist', 'instruments', 'entries', 'results'])
   return rows.filter(isRecord).map((row) => ({
     isin: getStr(row, ISIN_KEYS, true) ?? '—',
-    name: getStr(row, NAME_KEYS, true) ?? getStr(row, ISIN_KEYS, true) ?? 'Unbekannt',
+    name: getStr(row, NAME_KEYS, true) ?? getStr(row, ISIN_KEYS, true) ?? t.unknownName,
     type: getStr(row, TYPE_KEYS),
     currency: getCurrency(row, fallbackCurrency),
     price: getNum(row, PRICE_KEYS),
     changePct: getNum(row, DAY_PCT_KEYS),
     stale: getBool(row, ['quoteIsOutdated', 'isOutdated', 'stale']),
+    raw: row as Json,
+  }))
+}
+
+/**
+ * `broker savings-plans`.
+ *
+ * The rate carries no currency of its own — plans are quoted in the account
+ * currency, so the fallback applies. `next_execution_date` is an ISO date;
+ * its redundant `_epoch_day` twin is ignored.
+ */
+export function normalizeSavingsPlans(
+  payload: Json | undefined,
+  fallbackCurrency = 'EUR',
+): SavingsPlan[] {
+  const rows = getList(payload, ['items', 'savingsPlans', 'plans', 'entries', 'results'])
+  return rows.filter(isRecord).map((row) => ({
+    isin: getStr(row, ISIN_KEYS, true) ?? '—',
+    name: getStr(row, NAME_KEYS, true) ?? getStr(row, ISIN_KEYS, true) ?? t.unknownName,
+    type: getStr(row, TYPE_KEYS),
+    currency: getCurrency(row, fallbackCurrency),
+    amount: getNum(row, ['amount', 'rate', 'savingsPlanAmount', 'monthlyAmount']),
+    frequency: getStr(row, ['frequency', 'interval', 'executionFrequency']),
+    dayOfMonth: getNum(row, ['dayOfMonth', 'executionDay']),
+    nextExecution: getStr(row, ['nextExecutionDate', 'nextExecution', 'nextRun']),
+    dynamizationRate: getNum(row, ['dynamizationRate', 'dynamization']),
+    paymentMethod: getStr(row, ['paymentMethod', 'paymentSource']),
     raw: row as Json,
   }))
 }
@@ -587,7 +632,7 @@ export function normalizeSearch(payload: Json | undefined, fallbackCurrency = 'E
   const rows = getList(payload, ['items', 'results', 'instruments', 'securities', 'hits'])
   return rows.filter(isRecord).map((row) => ({
     isin: getStr(row, ISIN_KEYS, true) ?? '—',
-    name: getStr(row, NAME_KEYS, true) ?? 'Unbekannt',
+    name: getStr(row, NAME_KEYS, true) ?? t.unknownName,
     type: getStr(row, TYPE_KEYS),
     currency: getCurrency(row, fallbackCurrency),
     price: getNum(row, PRICE_KEYS),

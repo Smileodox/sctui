@@ -16,6 +16,7 @@ import { DetailPane } from './views/DetailPane.js'
 import { HelpOverlay } from './views/HelpOverlay.js'
 import { HoldingsView } from './views/HoldingsView.js'
 import { OverviewView } from './views/OverviewView.js'
+import { SavingsPlansView } from './views/SavingsPlansView.js'
 import { SearchOverlay } from './views/SearchOverlay.js'
 import { SetupView } from './views/SetupView.js'
 import { TransactionsView } from './views/TransactionsView.js'
@@ -24,6 +25,7 @@ import { WatchlistView } from './views/WatchlistView.js'
 const TABS: readonly Tab[] = [
   { id: 'overview', label: t.tabOverview },
   { id: 'holdings', label: t.tabHoldings },
+  { id: 'savings', label: t.tabSavings },
   { id: 'watchlist', label: t.tabWatchlist },
   { id: 'transactions', label: t.tabTransactions },
 ]
@@ -69,6 +71,9 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
   const overnight = useResource(({ signal, force }) => client.overnight({ signal, force }), [client], {
     enabled: visited.has('overview'),
   })
+  const savings = useResource(({ signal, force }) => client.savingsPlans({ signal, force }), [client], {
+    enabled: visited.has('savings'),
+  })
   const watchlist = useResource(({ signal, force }) => client.watchlist({ signal, force }), [client], {
     enabled: visited.has('watchlist'),
   })
@@ -79,10 +84,11 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
   )
 
   const holdingRows = holdings.data?.value ?? []
+  const savingsRows = savings.data?.value ?? []
   const watchRows = watchlist.data?.value ?? []
   const transactionRows = transactions.data?.value ?? []
 
-  const rowCount = tab === 'holdings' ? holdingRows.length : tab === 'watchlist' ? watchRows.length : tab === 'transactions' ? transactionRows.length : 0
+  const rowCount = tab === 'holdings' ? holdingRows.length : tab === 'savings' ? savingsRows.length : tab === 'watchlist' ? watchRows.length : tab === 'transactions' ? transactionRows.length : 0
   const selectedIndex = Math.min(selection[tab] ?? 0, Math.max(0, rowCount - 1))
 
   /** What the detail pane should show: a search pick, else the selected row. */
@@ -90,6 +96,10 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
     if (pinnedTarget) return pinnedTarget
     if (tab === 'holdings') {
       const row = holdingRows[selectedIndex]
+      return row ? { isin: row.isin, name: row.name } : undefined
+    }
+    if (tab === 'savings') {
+      const row = savingsRows[selectedIndex]
       return row ? { isin: row.isin, name: row.name } : undefined
     }
     if (tab === 'watchlist') {
@@ -101,7 +111,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       return row?.isin ? { isin: row.isin, name: row.name } : undefined
     }
     return undefined
-  }, [pinnedTarget, tab, selectedIndex, holdingRows, watchRows, transactionRows])
+  }, [pinnedTarget, tab, selectedIndex, holdingRows, savingsRows, watchRows, transactionRows])
 
   const detailIsin = detailTarget?.isin
   const detailEnabled = detailOpen && !!detailIsin && detailIsin !== '—'
@@ -122,6 +132,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       overview.reload(force)
       holdings.reload(force)
       if (visited.has('overview')) overnight.reload(force)
+      if (visited.has('savings')) savings.reload(force)
       if (visited.has('watchlist')) watchlist.reload(force)
       if (visited.has('transactions')) transactions.reload(force)
       if (detailEnabled) {
@@ -129,7 +140,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
         chart.reload(force)
       }
     },
-    [overview, holdings, overnight, watchlist, transactions, quote, chart, visited, detailEnabled],
+    [overview, holdings, overnight, savings, watchlist, transactions, quote, chart, visited, detailEnabled],
   )
 
   useInterval(() => refreshAll(true), autoSeconds === null ? null : autoSeconds * 1000)
@@ -137,7 +148,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
   // -- current-view bookkeeping -------------------------------------------
 
   const activeResource =
-    tab === 'holdings' ? holdings : tab === 'watchlist' ? watchlist : tab === 'transactions' ? transactions : overview
+    tab === 'holdings' ? holdings : tab === 'savings' ? savings : tab === 'watchlist' ? watchlist : tab === 'transactions' ? transactions : overview
 
   const loading =
     overview.loading || holdings.loading || activeResource.loading || (detailEnabled && (quote.loading || chart.loading))
@@ -159,6 +170,8 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
     switch (tab) {
       case 'holdings':
         return { title: 'holdings', command: holdings.data?.command, payload: holdings.data?.raw }
+      case 'savings':
+        return { title: 'savings-plans', command: savings.data?.command, payload: savings.data?.raw }
       case 'watchlist':
         return { title: 'watchlist', command: watchlist.data?.command, payload: watchlist.data?.raw }
       case 'transactions':
@@ -166,7 +179,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       default:
         return { title: 'overview', command: overview.data?.command, payload: overview.data?.raw }
     }
-  }, [tab, detailOpen, detailEnabled, quote.data, holdings.data, watchlist.data, transactions.data, overview.data])
+  }, [tab, detailOpen, detailEnabled, quote.data, holdings.data, savings.data, watchlist.data, transactions.data, overview.data])
 
   // -- input ---------------------------------------------------------------
 
@@ -400,6 +413,15 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
                 selectedIndex={selectedIndex}
                 focused={!showDetail}
                 loading={holdings.loading}
+              />
+            ) : tab === 'savings' ? (
+              <SavingsPlansView
+                plans={savingsRows}
+                width={listWidth}
+                height={contentHeight}
+                selectedIndex={selectedIndex}
+                focused={!showDetail}
+                loading={savings.loading}
               />
             ) : tab === 'watchlist' ? (
               <WatchlistView
