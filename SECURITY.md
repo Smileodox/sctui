@@ -76,8 +76,8 @@ visible in one file.
 - sctui shows what `sc` reports. Wrong, delayed or incomplete figures are
   possible — not investment advice; never act on this display alone.
 - `npm install` pulls three runtime dependencies (ink, ink-text-input,
-  react); the lockfile is committed and releases are published with
-  `npm publish --provenance`.
+  react); the lockfile is committed. Provenance-attested publishing from CI
+  is planned once npm trusted publishing is set up for the package.
 
 ## Found a vulnerability?
 
