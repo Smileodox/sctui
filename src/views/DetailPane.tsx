@@ -2,11 +2,13 @@ import { Box, Text } from 'ink'
 import type React from 'react'
 import { Chart } from '../components/Chart.js'
 import { Panel } from '../components/Panel.js'
-import { date, money, number, percent, truncate, wrap } from '../format.js'
+import { date, money, number, pad, percent, truncate, wrap } from '../format.js'
 import { t } from '../strings.js'
 import { theme, trendColor, trendGlyph } from '../theme.js'
 import { type Timeframe } from '../sc/client.js'
 import type { ChartSeries, NewsSummary, Quote } from '../sc/normalize.js'
+import type { FundComposition } from '../lookup.js'
+import { bar } from '../render/chart.js'
 
 export interface DetailPaneProps {
   isin: string
@@ -19,10 +21,14 @@ export interface DetailPaneProps {
   focused?: boolean
   loading?: boolean
   error?: Error
-  /** `n` swaps the chart area for headlines — same rows, no new overflow surface. */
-  newsMode?: boolean
+  /** `n`/`f` swap the chart area for headlines or the fund composition —
+   * always the same row budget, never a new overflow surface. */
+  mode?: 'chart' | 'news' | 'fund'
   news?: NewsSummary
   newsLoading?: boolean
+  fund?: FundComposition
+  fundLoading?: boolean
+  fundError?: Error
 }
 
 /** The name and the price row; without these there is no pane worth drawing. */
@@ -53,9 +59,12 @@ export function DetailPane({
   focused = false,
   loading = false,
   error,
-  newsMode = false,
+  mode = 'chart',
   news,
   newsLoading = false,
+  fund,
+  fundLoading = false,
+  fundError,
 }: DetailPaneProps): React.ReactElement {
   // Panel eats 2 rows of border and 1 row of title + 1 margin.
   const inner = Math.max(1, height - 4)
@@ -76,7 +85,7 @@ export function DetailPane({
   return (
     <Panel
       title={t.panelInstrument}
-      meta={newsMode ? t.newsBackHint : `${timeframe} · ${t.timeframeHint}`}
+      meta={mode === 'news' ? t.newsBackHint : mode === 'fund' ? t.fundBackHint : `${timeframe} · ${t.timeframeHint}`}
       focused={focused}
       width={width}
       height={height}
@@ -112,8 +121,10 @@ export function DetailPane({
 
       {error ? (
         <Text color={theme.error}>{truncate(error.message, innerWidth)}</Text>
-      ) : showChart && newsMode ? (
+      ) : showChart && mode === 'news' ? (
         <NewsSection news={news} loading={newsLoading} width={innerWidth} height={chartHeight} />
+      ) : showChart && mode === 'fund' ? (
+        <FundSection fund={fund} loading={fundLoading} error={fundError} width={innerWidth} height={chartHeight} />
       ) : showChart ? (
         <Chart
           points={chart?.points ?? []}
@@ -242,4 +253,84 @@ function NewsSection({
   }
 
   return <Box flexDirection="column">{lines.slice(0, height)}</Box>
+}
+
+/**
+ * Sector weights as bars, then the top holdings — in the chart's slot and
+ * sliced to exactly its rows. The dim source line is not decoration: this is
+ * the one view whose data does not come from `sc`, and that must be visible.
+ */
+function FundSection({
+  fund,
+  loading,
+  error,
+  width,
+  height,
+}: {
+  fund?: FundComposition
+  loading: boolean
+  error?: Error
+  width: number
+  height: number
+}): React.ReactElement {
+  const lines: React.ReactElement[] = []
+
+  if (error) {
+    lines.push(
+      <Text key="error" color={theme.warn}>
+        {truncate(error.message, width)}
+      </Text>,
+    )
+  } else if (!fund || (fund.sectors.length === 0 && fund.holdings.length === 0)) {
+    lines.push(
+      <Text key="empty" color={theme.dim}>
+        {loading ? t.loading : t.fundEmpty}
+      </Text>,
+    )
+  } else {
+    // Sectors get at most half the slot; holdings and the source line share the rest.
+    const sectorRows = Math.min(fund.sectors.length, Math.max(1, Math.floor((height - 2) / 2)))
+    const nameWidth = Math.min(16, Math.max(8, Math.floor(width * 0.3)))
+    const pctWidth = 7
+    const barWidth = Math.max(3, width - nameWidth - pctWidth - 2)
+    const maxWeight = Math.max(...fund.sectors.map((sector) => sector.weightPct), 1)
+
+    for (const sector of fund.sectors.slice(0, sectorRows)) {
+      lines.push(
+        <Box key={`s-${sector.name}`}>
+          <Text color={theme.muted}>{pad(sector.name, nameWidth)}</Text>
+          <Text color={theme.accent}> {bar(sector.weightPct / maxWeight, barWidth)}</Text>
+          <Text color={theme.dim}>{pad(percent(sector.weightPct, 1, false), pctWidth, 'right')}</Text>
+        </Box>,
+      )
+    }
+
+    if (fund.holdings.length > 0) {
+      lines.push(
+        <Text key="ht" color={theme.dim}>
+          {truncate(t.fundTopHoldings, width)}
+        </Text>,
+      )
+      for (const holding of fund.holdings) {
+        lines.push(
+          <Box key={`h-${holding.name}`}>
+            <Text color={theme.dim}>{pad(percent(holding.weightPct, 1, false), 7, 'right')} </Text>
+            <Text color={theme.fg}>{truncate(holding.name, Math.max(0, width - 8))}</Text>
+          </Box>,
+        )
+      }
+    }
+    lines.push(
+      <Text key="src" color={theme.dim}>
+        {truncate(t.fundSource, width)}
+      </Text>,
+    )
+  }
+
+  // The source line must survive any slice — swap it in as the last visible row.
+  const shown = lines.slice(0, height)
+  if (shown.length === height && lines.length > height) {
+    shown[shown.length - 1] = lines[lines.length - 1] as React.ReactElement
+  }
+  return <Box flexDirection="column">{shown}</Box>
 }

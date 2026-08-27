@@ -80,6 +80,7 @@ sctui [options]
   --no-refresh           Disable auto-refresh
   --tab <name>           Start tab: overview | holdings | savings | watchlist | transactions
   --enable-writes        Allow creating savings plans (preview + confirm; off by default)
+  --enable-lookup        Allow ETF-composition lookup via Yahoo Finance (off by default)
   --sc-bin <path>        Alternative path to the sc binary
   --no-alt-screen        Render in the normal buffer (useful for debugging)
   -h, --help             Help
@@ -102,6 +103,7 @@ format.
 | `esc` · `←` · `h` | Close detail |
 | `[` `]` · `t` | Chart timeframe back / forward / cycle |
 | `n` | Chart ↔ news in the detail pane |
+| `f` | Chart ↔ ETF composition ([opt-in](#etf-composition-opt-in)) |
 | `+` | New savings plan (savings tab, [opt-in](#creating-savings-plans-opt-in)) |
 | `r` | Refresh now (bypass cache) |
 | `a` | Auto-refresh on / off |
@@ -157,6 +159,29 @@ Note: a session created with `sc login --local-read-only` refuses mutations
 at the binary level — to use the wizard you need a regular `sc login`
 session. That trade-off is yours to make; the read-only login remains the
 recommendation if you never create plans from the terminal.
+
+## ETF composition (opt-in)
+
+`f` in the instrument detail swaps the chart for the fund's sector weights
+and top holdings. The `sc` CLI does not provide this data, so it comes from
+**Yahoo Finance's unofficial API** — and because that breaks the default
+"sctui itself opens no network connections" property, it is off until you
+start with:
+
+```sh
+sctui --enable-lookup
+```
+
+What that means, precisely:
+
+- Exactly one external host (`query2.finance.yahoo.com`); the **only thing
+  transmitted is the ISIN** — never account data, positions or values.
+- The source is unofficial and can break or disappear without notice; every
+  failure degrades to an empty state. Bond ETFs and single stocks
+  legitimately return no composition.
+- CI enforces the boundary: network access (`fetch`) outside `src/lookup.ts`
+  fails the build, the same way `child_process` outside `exec.ts` does.
+- The demo mode simulates this view without any network access.
 
 ## What the CLI provides
 

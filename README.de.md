@@ -69,6 +69,7 @@ oder `SCTUI_LOCALE=de-DE`) sind alle Beschriftungen und Zahlenformate deutsch
 | `[` `]` · `t` | Chart-Zeitraum wechseln |
 | `n` | Chart ↔ News im Detail |
 | `+` | Neuer Sparplan (Sparpläne-Tab, nur mit `--enable-writes`) |
+| `f` | Chart ↔ ETF-Zusammensetzung (nur mit `--enable-lookup`, via Yahoo) |
 | `r` / `a` | Refresh / Auto-Refresh |
 | `/` | Instrumentensuche |
 | `d` | Roh-JSON der aktuellen Ansicht |

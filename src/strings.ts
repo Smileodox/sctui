@@ -139,6 +139,28 @@ const en = {
   newsEmpty: 'No news for this instrument',
   newsBackHint: 'n chart',
 
+  // Fund composition (f toggles the chart area; external, opt-in)
+  hintFund: 'etf',
+  fundBackHint: 'f chart',
+  fundEmpty: 'No composition data for this instrument',
+  fundSource: 'via Yahoo Finance (unofficial, opt-in)',
+  fundTopHoldings: 'Top holdings',
+  lookupDisabled: 'External lookup is off — start sctui with --enable-lookup',
+  sectorName: (key: string): string =>
+    ({
+      technology: 'Technology',
+      financial_services: 'Financial Services',
+      healthcare: 'Healthcare',
+      consumer_cyclical: 'Consumer Cyclical',
+      consumer_defensive: 'Consumer Defensive',
+      industrials: 'Industrials',
+      communication_services: 'Communication',
+      energy: 'Energy',
+      basic_materials: 'Basic Materials',
+      utilities: 'Utilities',
+      realestate: 'Real Estate',
+    })[key] ?? key.replace(/_/g, ' '),
+
   // Transaction detail
   txDetailTitle: 'Transaction',
   lblVenue: 'Venue',
@@ -202,6 +224,7 @@ const en = {
   helpTimeframePrev: 'Chart timeframe back / forward',
   helpTimeframeCycle: 'Cycle timeframe',
   helpNewsToggle: 'Chart / news in the detail pane',
+  helpFundToggle: 'Chart / ETF composition (needs --enable-lookup)',
   helpNewPlan: 'New savings plan (savings tab, needs --enable-writes)',
   helpDataSection: 'Data',
   helpRefresh: 'Refresh now (bypass cache)',
@@ -264,6 +287,7 @@ const en = {
     --sc-bin <path>        Alternative path to the sc binary
     --no-alt-screen        Render in the normal buffer (useful for debugging)
     --enable-writes        Allow creating savings plans (preview + confirm; off by default)
+    --enable-lookup        Allow ETF-composition lookup via Yahoo Finance (off by default)
     -h, --help             This help
     -v, --version          Version
 
@@ -382,6 +406,27 @@ const de: Strings = {
   newsEmpty: 'Keine News zu diesem Wert',
   newsBackHint: 'n chart',
 
+  hintFund: 'etf',
+  fundBackHint: 'f chart',
+  fundEmpty: 'Keine Zusammensetzungsdaten zu diesem Wert',
+  fundSource: 'via Yahoo Finance (inoffiziell, opt-in)',
+  fundTopHoldings: 'Top-Positionen',
+  lookupDisabled: 'Externer Lookup ist aus — sctui mit --enable-lookup starten',
+  sectorName: (key: string): string =>
+    ({
+      technology: 'Technologie',
+      financial_services: 'Finanzen',
+      healthcare: 'Gesundheit',
+      consumer_cyclical: 'Zykl. Konsum',
+      consumer_defensive: 'Basiskonsum',
+      industrials: 'Industrie',
+      communication_services: 'Kommunikation',
+      energy: 'Energie',
+      basic_materials: 'Grundstoffe',
+      utilities: 'Versorger',
+      realestate: 'Immobilien',
+    })[key] ?? key.replace(/_/g, ' '),
+
   txDetailTitle: 'Transaktion',
   lblVenue: 'Handelsplatz',
   lblAvgPrice: 'Ø Kurs',
@@ -440,6 +485,7 @@ const de: Strings = {
   helpTimeframePrev: 'Chart-Zeitraum zurück / vor',
   helpTimeframeCycle: 'Zeitraum durchschalten',
   helpNewsToggle: 'Chart / News im Detail umschalten',
+  helpFundToggle: 'Chart / ETF-Zusammensetzung (braucht --enable-lookup)',
   helpNewPlan: 'Neuer Sparplan (Sparpläne-Tab, braucht --enable-writes)',
   helpDataSection: 'Daten',
   helpRefresh: 'Jetzt aktualisieren (Cache umgehen)',
@@ -498,6 +544,7 @@ const de: Strings = {
     --sc-bin <pfad>        Abweichender Pfad zur sc-Binary
     --no-alt-screen        Im normalen Puffer rendern (nützlich zum Debuggen)
     --enable-writes        Sparpläne anlegen erlauben (Preview + Bestätigung; standardmäßig aus)
+    --enable-lookup        ETF-Zusammensetzung via Yahoo Finance erlauben (standardmäßig aus)
     -h, --help             Diese Hilfe
     -v, --version          Version
 

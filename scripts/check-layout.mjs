@@ -92,6 +92,12 @@ cases.push({ columns: 78, rows: 16, tab: 'savings', keys: '+', scBin: FAKE_SC, e
 for (const [columns, rows] of [[100, 24], [92, 18], [78, 14]]) {
   cases.push({ columns, rows, tab: 'savings', keys: '+IE00B4L5Y983~.25~~~.', settle: 3000, ...(rows >= 18 ? { expect: 'nothinghasbeencreated' } : {}) })
 }
+// The fund-composition view: demo data in the chart slot, and the opt-in
+// hint when the live client runs without --enable-lookup.
+for (const [columns, rows] of [[100, 24], [92, 20], [78, 16]]) {
+  cases.push({ columns, rows, tab: 'holdings', keys: '~f', settle: 2500, ...(rows >= 20 ? { expect: 'topholdings' } : {}) })
+}
+cases.push({ columns: 92, rows: 20, tab: 'holdings', keys: '~f', scBin: FAKE_SC, settle: 2500, expect: 'enable-lookup' })
 for (const [columns, rows] of SHORT_SIZES) {
   cases.push({ columns, rows, tab: 'overview', keys: '', expect: TILE_LABEL })
   cases.push({ columns, rows, tab: 'overview', keys: '', scBin: FAKE_SC, expect: TILE_LABEL })

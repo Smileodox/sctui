@@ -3,7 +3,8 @@ import { render } from 'ink'
 import process from 'node:process'
 import { App } from './app.js'
 import { ScClient, type DataSource } from './sc/client.js'
-import { DemoClient } from './sc/mock.js'
+import { DemoClient, demoCompositionSource } from './sc/mock.js'
+import { disabledCompositionSource, yahooCompositionSource } from './lookup.js'
 import { t } from './strings.js'
 
 interface Options {
@@ -13,6 +14,7 @@ interface Options {
   scBin?: string
   altScreen: boolean
   enableWrites: boolean
+  enableLookup: boolean
 }
 
 const USAGE = t.usage
@@ -26,6 +28,7 @@ function parseArgs(argv: string[]): Options | { help: true } | { version: true }
     tab: 'overview',
     altScreen: true,
     enableWrites: false,
+    enableLookup: false,
   }
 
   for (let i = 0; i < argv.length; i++) {
@@ -48,6 +51,9 @@ function parseArgs(argv: string[]): Options | { help: true } | { version: true }
         break
       case '--enable-writes':
         options.enableWrites = true
+        break
+      case '--enable-lookup':
+        options.enableLookup = true
         break
       case '--refresh': {
         const value = Number(argv[++i])
@@ -87,7 +93,7 @@ if ('help' in parsed) {
 }
 
 if ('version' in parsed) {
-  process.stdout.write('sctui 0.4.0\n')
+  process.stdout.write('sctui 0.5.0\n')
   process.exit(0)
 }
 
@@ -100,8 +106,16 @@ const client: DataSource = parsed.demo
   ? new DemoClient()
   : new ScClient({ bin: parsed.scBin, enableWrites: parsed.enableWrites })
 
+// The composition lookup is the only non-`sc` data source; the demo simulates
+// it, live use requires the explicit opt-in.
+const composition = parsed.demo
+  ? demoCompositionSource()
+  : parsed.enableLookup
+    ? yahooCompositionSource()
+    : disabledCompositionSource()
+
 const instance = render(
-  <App client={client} autoRefreshSeconds={parsed.refreshSeconds} initialTab={parsed.tab} />,
+  <App client={client} composition={composition} autoRefreshSeconds={parsed.refreshSeconds} initialTab={parsed.tab} />,
   {
     // The alternate screen keeps the dashboard out of your scrollback, the way
     // htop and vim do; --no-alt-screen turns it off when you want the frames.

@@ -11,6 +11,7 @@ import { ScError } from './sc/exec.js'
 import { TIMEFRAMES, type DataSource, type Timeframe } from './sc/client.js'
 import type { Json } from './sc/json.js'
 import { t } from './strings.js'
+import type { CompositionSource } from './lookup.js'
 import { CreatePlanOverlay } from './views/CreatePlanOverlay.js'
 import { DebugOverlay } from './views/DebugOverlay.js'
 import { DetailPane } from './views/DetailPane.js'
@@ -37,6 +38,8 @@ type OverlayId = 'help' | 'search' | 'debug' | 'create' | null
 
 export interface AppProps {
   client: DataSource
+  /** ETF-composition lookup — demo, Yahoo (opt-in), or the disabled stub. */
+  composition: CompositionSource
   /** Seconds between automatic refreshes, or `null` to start paused. */
   autoRefreshSeconds: number | null
   initialTab?: TabId
@@ -48,7 +51,7 @@ interface DetailTarget {
   name?: string
 }
 
-export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: AppProps): React.ReactElement {
+export function App({ client, composition, autoRefreshSeconds, initialTab = 'overview' }: AppProps): React.ReactElement {
   const { exit } = useApp()
   const size = useWindowSize()
 
@@ -61,9 +64,10 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
   const [overlay, setOverlay] = useState<OverlayId>(null)
   const [debugScroll, setDebugScroll] = useState(0)
   const [autoSeconds, setAutoSeconds] = useState<number | null>(autoRefreshSeconds)
-  // `n` swaps the detail pane's chart area for headlines. Sticky on purpose:
-  // whoever reads news for one instrument usually wants it for the next too.
-  const [newsMode, setNewsMode] = useState(false)
+  // `n` swaps the detail pane's chart area for headlines, `f` for the fund
+  // composition. Sticky on purpose: whoever reads news for one instrument
+  // usually wants it for the next too.
+  const [detailMode, setDetailMode] = useState<'chart' | 'news' | 'fund'>('chart')
 
   useTick(1000) // keeps the "aktualisiert vor …" clock honest
 
@@ -140,7 +144,12 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
   const news = useResource(
     ({ signal, force }) => client.news(detailIsin as string, { signal, force }),
     [client, detailIsin],
-    { enabled: detailEnabled && newsMode },
+    { enabled: detailEnabled && detailMode === 'news' },
+  )
+  const fund = useResource(
+    async ({ signal }) => await composition(detailIsin as string, signal),
+    [composition, detailIsin],
+    { enabled: detailEnabled && detailMode === 'fund' },
   )
   const txDetails = useResource(
     ({ signal, force }) => client.transactionDetails(txSelected?.id as string, { signal, force }),
@@ -159,11 +168,11 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       if (detailEnabled) {
         quote.reload(force)
         chart.reload(force)
-        if (newsMode) news.reload(force)
+        if (detailMode === 'news') news.reload(force)
       }
       if (txPaneActive) txDetails.reload(force)
     },
-    [overview, holdings, overnight, savings, watchlist, transactions, quote, chart, news, txDetails, visited, detailEnabled, newsMode, txPaneActive],
+    [overview, holdings, overnight, savings, watchlist, transactions, quote, chart, news, txDetails, visited, detailEnabled, detailMode, txPaneActive],
   )
 
   useInterval(() => refreshAll(true), autoSeconds === null ? null : autoSeconds * 1000)
@@ -177,7 +186,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
     overview.loading ||
     holdings.loading ||
     activeResource.loading ||
-    (detailEnabled && (quote.loading || chart.loading || (newsMode && news.loading))) ||
+    (detailEnabled && (quote.loading || chart.loading || (detailMode === 'news' && news.loading) || (detailMode === 'fund' && fund.loading))) ||
     (txPaneActive && txDetails.loading)
 
   const firstError = [
@@ -187,7 +196,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
     quote.error,
     chart.error,
     ...(txPaneActive ? [txDetails.error] : []),
-    ...(newsMode && detailEnabled ? [news.error] : []),
+    ...(detailMode === 'news' && detailEnabled ? [news.error] : []),
   ].find((e): e is Error => e !== undefined)
 
   const fatalError =
@@ -201,7 +210,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       return { title: 'transaction-details', command: txDetails.data?.command, payload: txDetails.data?.raw }
     }
     if (detailOpen && detailEnabled) {
-      if (newsMode) return { title: 'news', command: news.data?.command, payload: news.data?.raw }
+      if (detailMode === 'news') return { title: 'news', command: news.data?.command, payload: news.data?.raw }
       return { title: 'quote', command: quote.data?.command, payload: quote.data?.raw }
     }
     switch (tab) {
@@ -216,7 +225,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       default:
         return { title: 'overview', command: overview.data?.command, payload: overview.data?.raw }
     }
-  }, [tab, detailOpen, detailEnabled, txPaneActive, newsMode, quote.data, news.data, txDetails.data, holdings.data, savings.data, watchlist.data, transactions.data, overview.data])
+  }, [tab, detailOpen, detailEnabled, txPaneActive, detailMode, quote.data, news.data, txDetails.data, holdings.data, savings.data, watchlist.data, transactions.data, overview.data])
 
   // -- input ---------------------------------------------------------------
 
@@ -323,7 +332,11 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
         return
       }
       if (input === 'n') {
-        if (detailOpen && !txPaneActive) setNewsMode((mode) => !mode)
+        if (detailOpen && !txPaneActive) setDetailMode((mode) => (mode === 'news' ? 'chart' : 'news'))
+        return
+      }
+      if (input === 'f') {
+        if (detailOpen && !txPaneActive) setDetailMode((mode) => (mode === 'fund' ? 'chart' : 'fund'))
         return
       }
       if (input === '+') {
@@ -385,7 +398,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
           ['↑↓', t.hintSelect],
           showDetail ? (['esc', t.hintBack] as const) : (['⏎', t.hintDetail] as const),
           ['[ ]', t.hintTimeframe],
-          ...(showDetail && !txPaneActive ? ([['n', t.hintNews]] as const) : []),
+          ...(showDetail && !txPaneActive ? ([['n', t.hintNews], ['f', t.hintFund]] as const) : []),
           ...(tab === 'savings' && !showDetail ? ([['+', t.hintNewPlan]] as const) : []),
           ['/', t.hintSearch],
           ['r', t.hintRefresh],
@@ -519,9 +532,12 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
                 focused
                 loading={quote.loading || chart.loading}
                 error={chart.error}
-                newsMode={newsMode}
+                mode={detailMode}
                 news={news.data?.value}
                 newsLoading={news.loading}
+                fund={fund.data}
+                fundLoading={fund.loading}
+                fundError={fund.error}
               />
             ) : null}
           </>

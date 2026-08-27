@@ -17,7 +17,8 @@ import process from 'node:process'
 import React from 'react'
 import { App } from '../src/app.js'
 import { ScClient } from '../src/sc/client.js'
-import { DemoClient } from '../src/sc/mock.js'
+import { DemoClient, demoCompositionSource } from '../src/sc/mock.js'
+import { disabledCompositionSource, yahooCompositionSource } from '../src/lookup.js'
 
 const args = process.argv.slice(2)
 const positional = args.filter((a) => !a.startsWith('--'))
@@ -46,9 +47,16 @@ Object.assign(stdin, {
 })
 
 const enableWrites = args.includes('--enable-writes')
+const enableLookup = args.includes('--enable-lookup')
 const client = scBin === undefined ? new DemoClient() : new ScClient({ bin: scBin, enableWrites })
+const composition =
+  scBin === undefined
+    ? demoCompositionSource()
+    : enableLookup
+      ? yahooCompositionSource()
+      : disabledCompositionSource()
 
-const instance = render(<App client={client} autoRefreshSeconds={null} initialTab={tab} />, {
+const instance = render(<App client={client} composition={composition} autoRefreshSeconds={null} initialTab={tab} />, {
   stdout,
   stdin,
   interactive: true,

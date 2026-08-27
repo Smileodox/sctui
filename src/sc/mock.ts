@@ -27,6 +27,7 @@ import type {
 import type { DataSource, Fetched, FetchOptions, Timeframe } from './client.js'
 import type { Json } from './json.js'
 import { t } from '../strings.js'
+import type { FundComposition } from '../lookup.js'
 
 interface Instrument {
   isin: string
@@ -247,6 +248,39 @@ function summary(): PortfolioSummary {
     totalReturn,
     totalReturnPct: round2((totalReturn / costBasis) * 100),
     raw: { demo: true } as Json,
+  }
+}
+
+/**
+ * Demo composition for the `f` view — plausible weights for the equity funds,
+ * an honest empty result for everything else, like the real lookup.
+ */
+export function demoCompositionSource(): (isin: string, signal?: AbortSignal) => Promise<FundComposition> {
+  return async (isin) => {
+    await new Promise((resolve) => setTimeout(resolve, 120))
+    const instrument = INSTRUMENTS.find((entry) => entry.isin === isin)
+    if (!instrument || !['ETF', 'ETP', 'ETC'].includes(instrument.type)) {
+      return { symbol: instrument?.symbol, sectors: [], holdings: [] }
+    }
+    const rng = seededRandom(hashString(`${isin}:composition`))
+    const sectorKeys = [
+      'technology', 'financial_services', 'healthcare', 'consumer_cyclical',
+      'industrials', 'communication_services', 'consumer_defensive', 'energy',
+    ]
+    let remaining = 100
+    const sectors = sectorKeys.map((key, index) => {
+      const weightPct = index === sectorKeys.length - 1 ? remaining : Math.round(remaining * (0.2 + rng() * 0.2) * 10) / 10
+      remaining = Math.round((remaining - weightPct) * 10) / 10
+      return { name: t.sectorName(key), weightPct }
+    }).filter((sector) => sector.weightPct > 0.1)
+    const names = ['NVIDIA Corp', 'Apple Inc', 'Microsoft Corp', 'Amazon.com Inc', 'Alphabet Inc', 'Meta Platforms', 'Broadcom Inc', 'Tesla Inc', 'Eli Lilly', 'JPMorgan Chase']
+    let weight = 4 + rng() * 2
+    const holdings = names.map((name) => {
+      const entry = { name, weightPct: Math.round(weight * 100) / 100 }
+      weight *= 0.82
+      return entry
+    })
+    return { symbol: instrument.symbol, sectors, holdings }
   }
 }
 

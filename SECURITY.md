@@ -21,9 +21,14 @@ taking it on faith.
   must be echoed back, so nothing can be created that was not shown first.
   `--accept-unsuitable` (bypassing the broker's appropriateness check) is
   forbidden on every path.
-- sctui sends no telemetry, writes nothing to disk and opens no network
-  connections. Its only effect on the outside world is invoking the `sc`
-  binary.
+- sctui sends no telemetry and writes nothing to disk. By default it opens
+  no network connections of its own — its only effect on the outside world
+  is invoking the `sc` binary. The single exception is the opt-in
+  ETF-composition lookup (`--enable-lookup`): one external host
+  (`query2.finance.yahoo.com`), and the only datum transmitted is the ISIN —
+  never account data, positions or values. CI enforces this boundary the
+  same way as the process boundary: `fetch` outside `src/lookup.ts` fails
+  the build.
 
 ## The five-minute audit
 

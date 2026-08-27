@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 /**
- * Erzwingt die architektonische Grenze hinter der Read-only-Garantie:
- * Prozesse werden ausschließlich in src/sc/exec.ts gestartet — der einen
- * Datei, die jeden Aufruf durch assertReadOnly() schickt.
+ * Erzwingt die zwei architektonischen Grenzen hinter den Vertrauens-Claims:
  *
- * Taucht `child_process` irgendwo sonst in src/ auf, existiert ein Weg an der
- * Allowlist vorbei, und dieser Check schlägt fehl. Er läuft in CI vor den
- * Tests: die Tests beweisen, dass der Wächter korrekt ist, dieser Check
- * beweist, dass niemand an ihm vorbeigeht.
+ *  1. Prozesse werden ausschließlich in src/sc/exec.ts gestartet — der einen
+ *     Datei, die jeden Aufruf durch assertReadOnly()/assertWrite() schickt.
+ *  2. Netzwerkzugriffe (fetch, node:http/https) leben ausschließlich in
+ *     src/lookup.ts — der einen, per --enable-lookup gegateten Ausnahme vom
+ *     "sctui öffnet selbst keine Netzwerkverbindungen"-Versprechen.
+ *
+ * Taucht eines davon woanders in src/ auf, existiert ein Weg an den Gates
+ * vorbei, und dieser Check schlägt fehl. Er läuft in CI vor den Tests: die
+ * Tests beweisen, dass die Wächter korrekt sind, dieser Check beweist, dass
+ * niemand an ihnen vorbeigeht.
  *
  *   node scripts/check-readonly-boundary.mjs
  */
@@ -17,8 +21,21 @@ import path from 'node:path'
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const srcDir = path.join(root, 'src')
-const ALLOWED = path.join('src', 'sc', 'exec.ts')
-const PATTERN = /child_process/
+
+const RULES = [
+  {
+    allowed: path.join('src', 'sc', 'exec.ts'),
+    pattern: /child_process/,
+    label: 'child_process',
+  },
+  {
+    allowed: path.join('src', 'lookup.ts'),
+    // Bare fetch() calls — `.fetch(` (the client's own method) and the
+    // method declaration `fetch<T>(` are not network access.
+    pattern: /(?<![.\w])fetch\(|node:https?|require\(['"]https?['"]\)/,
+    label: 'network access (fetch / node:http[s])',
+  },
+]
 
 const offenders = []
 const walk = (dir) => {
@@ -29,18 +46,20 @@ const walk = (dir) => {
       continue
     }
     const rel = path.relative(root, full)
-    if (rel === ALLOWED) continue
     const lines = readFileSync(full, 'utf8').split('\n')
-    for (let i = 0; i < lines.length; i++) {
-      if (PATTERN.test(lines[i])) offenders.push(`${rel}:${i + 1}: ${lines[i].trim()}`)
+    for (const rule of RULES) {
+      if (rel === rule.allowed) continue
+      for (let i = 0; i < lines.length; i++) {
+        if (rule.pattern.test(lines[i])) offenders.push(`${rel}:${i + 1} [${rule.label}]: ${lines[i].trim()}`)
+      }
     }
   }
 }
 walk(srcDir)
 
 if (offenders.length > 0) {
-  console.error('child_process außerhalb von src/sc/exec.ts — die Read-only-Grenze ist verletzt:')
+  console.error('Grenzverletzung — ein Gate wurde umgangen:')
   for (const line of offenders) console.error(`  ${line}`)
   process.exit(1)
 }
-console.log(`ok — Prozesse starten nur in ${ALLOWED}`)
+console.log('ok — Prozesse nur in src/sc/exec.ts, Netzwerk nur in src/lookup.ts')
