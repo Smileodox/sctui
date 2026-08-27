@@ -147,6 +147,51 @@ JSON
 JSON
     ;;
 
+  "broker transaction")
+    # `broker transaction details --transaction-id X --json` — the id is echoed
+    # back, everything else mirrors a filled savings-plan buy from sc 1.0.0.
+    txid=$4
+    cat <<JSON
+{"ok":true,"command":"broker.transaction.details","data":{$ACCOUNT,
+ "result":{$ACCOUNT,"id":"$txid","cash":null,"currency":"EUR",
+  "detail_type":"security_trade","detail_typename":"BrokerSecurityTransaction",
+  "documents":[{"id":"doc-1","label":"Contract note","url":"./api/download?id=doc-1"},
+               {"id":"doc-2","label":"Cost information","url":"./api/download?id=doc-2"}],
+  "history":[
+   {"state":"REQUESTED","timestamp":"2026-08-25T12:08:23","execution_price":0,"number_of_shares":{"filled":0,"total":0.1204}},
+   {"state":"PENDING","timestamp":"2026-08-25T12:08:35","execution_price":0,"number_of_shares":{"filled":0,"total":0.1204}},
+   {"state":"FILLED","timestamp":"2026-08-25T12:09:05","execution_price":162.20,"number_of_shares":{"filled":0.1204,"total":0.1204}}],
+  "is_cancellation":false,"is_pending":false,"last_event_datetime":"2026-08-25T12:09:05.502Z",
+  "security":{"isin":"IE000BI8OT95","name":"Amundi Core MSCI World (Acc)","security_type":"ETF"},
+  "security_trade":{"average_price":162.20,"fee":null,"finalisation_reason":"FILLED",
+   "limit_price":null,"number_of_shares":{"filled":0.1204,"total":0.1204},
+   "order_kind":"SAVINGS_PLAN","side":"BUY","status":"FINAL_FILL",
+   "total_amount":-19.53,"trading_venue":"SEIX",
+   "trade_transaction_amounts":{"market_valuation":19.53,"tax_amount":null,"transaction_fee":null,"venue_fee":null}},
+  "transaction_reference":"SCALFAKE1","type":"SECURITY_TRANSACTION"}}}
+JSON
+    ;;
+
+  "broker security-news")
+    # Like `broker chart`, the payload has no `result` — data is the container.
+    # Only the fixture's third position carries news, mirroring the real API,
+    # where funds usually come back empty.
+    isin=$4
+    if [ "$isin" = "IE00B4L5Y983" ]; then
+      cat <<'JSON'
+{"ok":true,"command":"broker.security-news","data":{"isin":"IE00B4L5Y983","locale":"en_DE",
+ "sources":[
+  {"headline":"World equities extend gains as rate-cut hopes build","id":"n-1","publication_time_utc":"2026-08-25T13:49:57.000Z","source_name":"dpa-AFX"},
+  {"headline":"Fund flows into global index trackers hit monthly record","id":"n-2","publication_time_utc":"2026-08-22T09:12:00.000Z","source_name":"dpa-AFX"}],
+ "summary":{"last_updated":"2026-08-26T10:15:40.224Z",
+  "long":null,
+  "short":"Global index funds keep attracting inflows while markets price in earlier rate cuts, lifting broad world trackers to new highs."}}}
+JSON
+    else
+      printf '{"ok":true,"command":"broker.security-news","data":{"isin":"%s","locale":"en_DE","sources":[],"summary":{"last_updated":null,"long":null,"short":null}}}\n' "$isin"
+    fi
+    ;;
+
   "broker savings-plans")
     # Mirrors sc 1.0.0: plan rows carry no currency of their own, the redundant
     # epoch-day twin sits beside the ISO date, and the total is pre-summed.

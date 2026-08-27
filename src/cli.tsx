@@ -82,7 +82,7 @@ if ('help' in parsed) {
 }
 
 if ('version' in parsed) {
-  process.stdout.write('sctui 0.2.0\n')
+  process.stdout.write('sctui 0.3.0\n')
   process.exit(0)
 }
 

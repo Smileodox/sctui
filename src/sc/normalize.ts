@@ -97,6 +97,40 @@ export interface SavingsPlan {
   raw: Json
 }
 
+export interface TransactionDetails {
+  id?: string
+  name?: string
+  isin?: string
+  type?: string
+  side?: string
+  orderKind?: string
+  status?: string
+  venue?: string
+  averagePrice?: number
+  limitPrice?: number
+  sharesFilled?: number
+  sharesTotal?: number
+  totalAmount?: number
+  fee?: number
+  tax?: number
+  currency: string
+  isPending?: boolean
+  reference?: string
+  /** Document labels only — downloading is not something a dashboard does. */
+  documents: string[]
+  /** Order lifecycle, oldest first: REQUESTED → PENDING → FILLED. */
+  history: Array<{ state?: string; time?: string; price?: number; filled?: number }>
+  raw: Json
+}
+
+export interface NewsSummary {
+  /** One-paragraph AI summary, in the requested locale. */
+  short?: string
+  long?: string
+  updatedAt?: string
+  items: Array<{ headline: string; time?: string; source?: string }>
+}
+
 /** `broker cash-breakdown` — cash never appears in `broker overview`. */
 export interface CashBreakdown {
   currency: string
@@ -481,6 +515,88 @@ export function normalizeSavingsPlans(
     paymentMethod: getStr(row, ['paymentMethod', 'paymentSource']),
     raw: row as Json,
   }))
+}
+
+/**
+ * `broker transaction details`.
+ *
+ * The interesting fields live one level down in `security_trade` (dot-path
+ * aliases reach them); `history` carries the order lifecycle and `documents`
+ * only its labels — the URLs are web-app-relative and useless in a terminal.
+ */
+export function normalizeTransactionDetails(
+  payload: Json | undefined,
+  fallbackCurrency = 'EUR',
+): TransactionDetails {
+  const row = isRecord(payload) ? payload : {}
+  const documents = getList(payload, ['documents'])
+    .filter(isRecord)
+    .map((doc) => getStr(doc, ['label', 'name'], true) ?? '')
+    .filter((label) => label.length > 0)
+  const history = getList(payload, ['history'])
+    .filter(isRecord)
+    .map((step) => ({
+      state: getStr(step, ['state', 'status']),
+      time: getStr(step, ['timestamp', 'time', 'datetime']),
+      price: getNum(step, ['executionPrice', 'price']),
+      filled: getNum(step, ['numberOfShares.filled', 'filled']),
+    }))
+
+  return {
+    id: getStr(row, ['id', 'transactionId'], true),
+    name: getStr(row, ['security.name', ...NAME_KEYS], true),
+    isin: getStr(row, ISIN_KEYS, true),
+    type: getStr(row, ['security.securityType', ...TYPE_KEYS]),
+    side: getStr(row, ['securityTrade.side', 'side']),
+    orderKind: getStr(row, ['securityTrade.orderKind', 'orderKind', 'detailType']),
+    status: getStr(row, ['securityTrade.status', 'status']),
+    venue: getStr(row, ['securityTrade.tradingVenue', 'tradingVenue', 'venue']),
+    averagePrice: getNum(row, ['securityTrade.averagePrice', 'averagePrice']),
+    limitPrice: getNum(row, ['securityTrade.limitPrice', 'limitPrice']),
+    sharesFilled: getNum(row, ['securityTrade.numberOfShares.filled']),
+    sharesTotal: getNum(row, ['securityTrade.numberOfShares.total']),
+    totalAmount: getNum(row, ['securityTrade.totalAmount', 'totalAmount', 'amount']),
+    fee: getNum(row, [
+      'securityTrade.fee',
+      'securityTrade.tradeTransactionAmounts.transactionFee',
+      'securityTrade.transactionalFee',
+      'fee',
+    ]),
+    tax: getNum(row, ['securityTrade.taxes', 'securityTrade.tradeTransactionAmounts.taxAmount']),
+    currency: getCurrency(row, fallbackCurrency),
+    isPending: bool(get(row, ['isPending'])),
+    reference: getStr(row, ['transactionReference', 'reference'], true),
+    documents,
+    history,
+    raw: (payload ?? null) as Json,
+  }
+}
+
+/**
+ * `broker security-news`.
+ *
+ * Like `broker chart`, the payload has no `result` — the caller passes the
+ * whole `data` container. ETFs usually come back empty; that is the API,
+ * not a parsing failure.
+ */
+export function normalizeNews(payload: Json | undefined): NewsSummary {
+  const row = isRecord(payload) ? payload : {}
+  const items = getList(payload, ['sources', 'items', 'news'])
+    .filter(isRecord)
+    .map((entry) => ({
+      headline: getStr(entry, ['headline', 'title'], true) ?? '',
+      time: getStr(entry, ['publicationTimeUtc', 'publishedAt', 'time']),
+      source: getStr(entry, ['sourceName', 'source']),
+    }))
+    .filter((entry) => entry.headline.length > 0)
+    .sort((a, b) => (b.time ?? '').localeCompare(a.time ?? ''))
+
+  return {
+    short: getStr(row, ['summary.short'], true),
+    long: getStr(row, ['summary.long'], true),
+    updatedAt: getStr(row, ['summary.lastUpdated']),
+    items,
+  }
 }
 
 /**

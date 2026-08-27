@@ -2,11 +2,11 @@ import { Box, Text } from 'ink'
 import type React from 'react'
 import { Chart } from '../components/Chart.js'
 import { Panel } from '../components/Panel.js'
-import { money, number, percent, truncate } from '../format.js'
+import { date, money, number, percent, truncate, wrap } from '../format.js'
 import { t } from '../strings.js'
 import { theme, trendColor, trendGlyph } from '../theme.js'
 import { type Timeframe } from '../sc/client.js'
-import type { ChartSeries, Quote } from '../sc/normalize.js'
+import type { ChartSeries, NewsSummary, Quote } from '../sc/normalize.js'
 
 export interface DetailPaneProps {
   isin: string
@@ -19,6 +19,10 @@ export interface DetailPaneProps {
   focused?: boolean
   loading?: boolean
   error?: Error
+  /** `n` swaps the chart area for headlines — same rows, no new overflow surface. */
+  newsMode?: boolean
+  news?: NewsSummary
+  newsLoading?: boolean
 }
 
 /** The name and the price row; without these there is no pane worth drawing. */
@@ -49,6 +53,9 @@ export function DetailPane({
   focused = false,
   loading = false,
   error,
+  newsMode = false,
+  news,
+  newsLoading = false,
 }: DetailPaneProps): React.ReactElement {
   // Panel eats 2 rows of border and 1 row of title + 1 margin.
   const inner = Math.max(1, height - 4)
@@ -69,7 +76,7 @@ export function DetailPane({
   return (
     <Panel
       title={t.panelInstrument}
-      meta={`${timeframe} · ${t.timeframeHint}`}
+      meta={newsMode ? t.newsBackHint : `${timeframe} · ${t.timeframeHint}`}
       focused={focused}
       width={width}
       height={height}
@@ -105,6 +112,8 @@ export function DetailPane({
 
       {error ? (
         <Text color={theme.error}>{truncate(error.message, innerWidth)}</Text>
+      ) : showChart && newsMode ? (
+        <NewsSection news={news} loading={newsLoading} width={innerWidth} height={chartHeight} />
       ) : showChart ? (
         <Chart
           points={chart?.points ?? []}
@@ -182,4 +191,55 @@ function QuoteGrid({ quote, width }: { quote?: Quote; width: number }): React.Re
       })}
     </Box>
   )
+}
+
+/**
+ * Headlines in the chart's slot: the AI summary first (it answers "why is
+ * this moving" faster than any headline), then the most recent items. Sliced
+ * to exactly the rows the chart would have used.
+ */
+function NewsSection({
+  news,
+  loading,
+  width,
+  height,
+}: {
+  news?: NewsSummary
+  loading: boolean
+  width: number
+  height: number
+}): React.ReactElement {
+  const lines: React.ReactElement[] = []
+
+  if (!news || (news.items.length === 0 && !news.short)) {
+    lines.push(
+      <Text key="empty" color={theme.dim}>
+        {loading ? t.loading : t.newsEmpty}
+      </Text>,
+    )
+  } else {
+    if (news.short) {
+      // The summary may take up to half the slot, but never starve the headlines.
+      const summaryRows = Math.max(1, Math.min(Math.ceil(height / 2), height - Math.min(news.items.length, 2) - 1))
+      for (const [index, line] of wrap(news.short, width).slice(0, summaryRows).entries()) {
+        lines.push(
+          <Text key={`s-${index}`} color={theme.muted}>
+            {line}
+          </Text>,
+        )
+      }
+      if (news.items.length > 0) lines.push(<Text key="gap"> </Text>)
+    }
+    for (const [index, item] of news.items.entries()) {
+      const when = item.time ? `${date(item.time)}  ` : ''
+      lines.push(
+        <Box key={`h-${index}`}>
+          <Text color={theme.dim}>{when}</Text>
+          <Text color={theme.fg}>{truncate(item.headline, Math.max(0, width - when.length))}</Text>
+        </Box>,
+      )
+    }
+  }
+
+  return <Box flexDirection="column">{lines.slice(0, height)}</Box>
 }

@@ -13,10 +13,12 @@ import type {
   Holding,
   OvernightAccount,
   PortfolioSummary,
+  NewsSummary,
   Quote,
   SavingsPlan,
   SearchResult,
   Transaction,
+  TransactionDetails,
   WatchItem,
 } from './normalize.js'
 import type { DataSource, Fetched, FetchOptions, Timeframe } from './client.js'
@@ -325,6 +327,58 @@ export class DemoClient implements DataSource {
       raw: { isin: instrument.isin, name: instrument.name } as Json,
     }))
     return settle(value, value.map((w) => w.raw) as Json, 'demo: sc broker watchlist --json', options.signal)
+  }
+
+  transactionDetails(id: string, options: FetchOptions = {}): Promise<Fetched<TransactionDetails>> {
+    // The demo ids encode the row index (`TX-<base36>`), so the detail can
+    // repeat the row's instrument instead of inventing a different one.
+    const index = Number.parseInt(id.replace(/^TX-/, ''), 36) - 1000
+    const instrument = INSTRUMENTS[((index % 8) + 8) % 8] as Instrument
+    const price = round2(priceOf(instrument))
+    const shares = round2(100 / price)
+    const value: TransactionDetails = {
+      id,
+      name: instrument.name,
+      isin: instrument.isin,
+      type: instrument.type,
+      side: 'BUY',
+      orderKind: 'SAVINGS_PLAN',
+      status: 'FINAL_FILL',
+      venue: 'SEIX',
+      averagePrice: price,
+      sharesFilled: shares,
+      sharesTotal: shares,
+      totalAmount: -100,
+      currency: 'EUR',
+      isPending: false,
+      reference: `SCAL${id}`,
+      documents: ['Contract note', 'Cost information'],
+      history: [
+        { state: 'REQUESTED', time: '2026-08-13T12:08:23', filled: 0 },
+        { state: 'PENDING', time: '2026-08-13T12:08:35', filled: 0 },
+        { state: 'FILLED', time: '2026-08-13T12:09:05', price, filled: shares },
+      ],
+      raw: { id, demo: true } as Json,
+    }
+    return settle(value, value.raw, `demo: sc broker transaction details --transaction-id ${id} --json`, options.signal)
+  }
+
+  news(isin: string, options: FetchOptions = {}): Promise<Fetched<NewsSummary>> {
+    const instrument = INSTRUMENTS.find((entry) => entry.isin === isin)
+    // Mirrors the real API: equities carry headlines, funds come back empty.
+    const value: NewsSummary =
+      instrument?.type === 'STOCK'
+        ? {
+            short: `${instrument.name} presents new products and confirms its outlook for the year — analysts read the announcement as a sign of stable demand.`,
+            updatedAt: new Date().toISOString(),
+            items: [
+              { headline: `${instrument.name} unveils new flagship product line`, time: '2026-08-25T13:49:57Z', source: 'dpa-AFX' },
+              { headline: `${instrument.name} confirms full-year guidance`, time: '2026-08-22T09:12:00Z', source: 'dpa-AFX' },
+              { headline: `Analysts raise price targets for ${instrument.name}`, time: '2026-08-20T15:30:10Z', source: 'dpa-AFX' },
+            ],
+          }
+        : { items: [] }
+    return settle(value, { isin, demo: true } as Json, `demo: sc broker security-news --isin ${isin} --json`, options.signal)
   }
 
   savingsPlans(options: FetchOptions = {}): Promise<Fetched<SavingsPlan[]>> {

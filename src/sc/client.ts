@@ -8,28 +8,32 @@
 
 import { runSc, ScError, type ScRunOptions } from './exec.js'
 import { extractJson, unwrapEnvelope, type Json } from './json.js'
-import { t } from '../strings.js'
+import { LANG, t } from '../strings.js'
 import {
   normalizeCash,
   normalizeChart,
+  normalizeNews,
   normalizeHoldings,
   normalizeIdentity,
   normalizeOvernight,
   normalizeQuote,
   normalizeSavingsPlans,
   normalizeSearch,
+  normalizeTransactionDetails,
   normalizeSummary,
   normalizeTransactions,
   normalizeWatchlist,
   type CashBreakdown,
   type ChartSeries,
   type Holding,
+  type NewsSummary,
   type OvernightAccount,
   type PortfolioSummary,
   type Quote,
   type SavingsPlan,
   type SearchResult,
   type Transaction,
+  type TransactionDetails,
   type WatchItem,
 } from './normalize.js'
 
@@ -62,6 +66,8 @@ export interface DataSource {
   watchlist(options?: FetchOptions): Promise<Fetched<WatchItem[]>>
   transactions(options?: FetchOptions): Promise<Fetched<Transaction[]>>
   savingsPlans(options?: FetchOptions): Promise<Fetched<SavingsPlan[]>>
+  transactionDetails(id: string, options?: FetchOptions): Promise<Fetched<TransactionDetails>>
+  news(isin: string, options?: FetchOptions): Promise<Fetched<NewsSummary>>
   overnight(options?: FetchOptions): Promise<Fetched<OvernightAccount>>
   quote(isin: string, options?: FetchOptions): Promise<Fetched<Quote>>
   chart(isin: string, timeframe: Timeframe, options?: FetchOptions): Promise<Fetched<ChartSeries>>
@@ -82,6 +88,8 @@ const TTL_MS: Record<string, number> = {
   watchlist: 20_000,
   transactions: 60_000,
   savingsPlans: 5 * 60_000,
+  txDetails: 5 * 60_000,
+  news: 10 * 60_000,
   overnight: 60_000,
   quote: 10_000,
   chart: 60_000,
@@ -321,6 +329,31 @@ export class ScClient implements DataSource {
       ['--json'],
       (payload) => normalizeSavingsPlans(payload),
       options,
+    )
+  }
+
+  transactionDetails(id: string, options: FetchOptions = {}): Promise<Fetched<TransactionDetails>> {
+    return this.fetch(
+      `txdetails:${id}`,
+      'txDetails',
+      ['broker', 'transaction', 'details'],
+      ['--transaction-id', id, '--json'],
+      (payload) => normalizeTransactionDetails(payload),
+      options,
+    )
+  }
+
+  news(isin: string, options: FetchOptions = {}): Promise<Fetched<NewsSummary>> {
+    // Like `broker chart`, the response has no `result` — hence the container
+    // slice. The locale follows the UI language, so summaries read natively.
+    return this.fetch(
+      `news:${isin}`,
+      'news',
+      ['broker', 'security-news'],
+      ['--isin', isin, '--locale', LANG === 'de' ? 'de_DE' : 'en_DE', '--json'],
+      (payload) => normalizeNews(payload),
+      options,
+      'container',
     )
   }
 

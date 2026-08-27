@@ -28,6 +28,7 @@ const SECTIONS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['esc  ·  ←  ·  h', t.helpDetailClose],
       ['[  ]', t.helpTimeframePrev],
       ['t', t.helpTimeframeCycle],
+      ['n', t.helpNewsToggle],
     ],
   },
   {

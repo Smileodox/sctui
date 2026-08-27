@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink'
 import type React from 'react'
 import { Panel } from '../components/Panel.js'
-import { truncate } from '../format.js'
+import { truncate, wrap } from '../format.js'
 import { t } from '../strings.js'
 import { theme } from '../theme.js'
 import { ScError } from '../sc/exec.js'
@@ -151,18 +151,3 @@ function renderLine(line: Line): React.ReactElement {
   )
 }
 
-/** Greedy word wrap; long words are left intact and clipped by the caller. */
-function wrap(text: string, width: number): string[] {
-  const lines: string[] = []
-  let current = ''
-  for (const word of text.split(' ')) {
-    if (current === '') current = word
-    else if (current.length + 1 + word.length <= width) current += ` ${word}`
-    else {
-      lines.push(current)
-      current = word
-    }
-  }
-  if (current !== '') lines.push(current)
-  return lines.map((line) => truncate(line, width))
-}

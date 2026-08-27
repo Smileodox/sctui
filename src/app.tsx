@@ -18,6 +18,7 @@ import { HoldingsView } from './views/HoldingsView.js'
 import { OverviewView } from './views/OverviewView.js'
 import { SavingsPlansView } from './views/SavingsPlansView.js'
 import { SearchOverlay } from './views/SearchOverlay.js'
+import { TransactionDetailPane } from './views/TransactionDetailPane.js'
 import { SetupView } from './views/SetupView.js'
 import { TransactionsView } from './views/TransactionsView.js'
 import { WatchlistView } from './views/WatchlistView.js'
@@ -59,6 +60,9 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
   const [overlay, setOverlay] = useState<OverlayId>(null)
   const [debugScroll, setDebugScroll] = useState(0)
   const [autoSeconds, setAutoSeconds] = useState<number | null>(autoRefreshSeconds)
+  // `n` swaps the detail pane's chart area for headlines. Sticky on purpose:
+  // whoever reads news for one instrument usually wants it for the next too.
+  const [newsMode, setNewsMode] = useState(false)
 
   useTick(1000) // keeps the "aktualisiert vor …" clock honest
 
@@ -114,7 +118,13 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
   }, [pinnedTarget, tab, selectedIndex, holdingRows, savingsRows, watchRows, transactionRows])
 
   const detailIsin = detailTarget?.isin
-  const detailEnabled = detailOpen && !!detailIsin && detailIsin !== '—'
+
+  // On the transactions tab, ⏎ means "show me this transaction", not the
+  // instrument chart — cash rows have no ISIN but still have a story to tell.
+  // A search pick (pinnedTarget) wins, because that was an explicit choice.
+  const txSelected = tab === 'transactions' && !pinnedTarget ? transactionRows[selectedIndex] : undefined
+  const txPaneActive = detailOpen && !!txSelected?.id
+  const detailEnabled = detailOpen && !txPaneActive && !!detailIsin && detailIsin !== '—'
 
   const quote = useResource(
     ({ signal, force }) => client.quote(detailIsin as string, { signal, force }),
@@ -125,6 +135,16 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
     ({ signal, force }) => client.chart(detailIsin as string, timeframe, { signal, force }),
     [client, detailIsin, timeframe],
     { enabled: detailEnabled },
+  )
+  const news = useResource(
+    ({ signal, force }) => client.news(detailIsin as string, { signal, force }),
+    [client, detailIsin],
+    { enabled: detailEnabled && newsMode },
+  )
+  const txDetails = useResource(
+    ({ signal, force }) => client.transactionDetails(txSelected?.id as string, { signal, force }),
+    [client, txSelected?.id],
+    { enabled: txPaneActive },
   )
 
   const refreshAll = useCallback(
@@ -138,9 +158,11 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       if (detailEnabled) {
         quote.reload(force)
         chart.reload(force)
+        if (newsMode) news.reload(force)
       }
+      if (txPaneActive) txDetails.reload(force)
     },
-    [overview, holdings, overnight, savings, watchlist, transactions, quote, chart, visited, detailEnabled],
+    [overview, holdings, overnight, savings, watchlist, transactions, quote, chart, news, txDetails, visited, detailEnabled, newsMode, txPaneActive],
   )
 
   useInterval(() => refreshAll(true), autoSeconds === null ? null : autoSeconds * 1000)
@@ -151,11 +173,21 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
     tab === 'holdings' ? holdings : tab === 'savings' ? savings : tab === 'watchlist' ? watchlist : tab === 'transactions' ? transactions : overview
 
   const loading =
-    overview.loading || holdings.loading || activeResource.loading || (detailEnabled && (quote.loading || chart.loading))
+    overview.loading ||
+    holdings.loading ||
+    activeResource.loading ||
+    (detailEnabled && (quote.loading || chart.loading || (newsMode && news.loading))) ||
+    (txPaneActive && txDetails.loading)
 
-  const firstError = [overview.error, holdings.error, activeResource.error, quote.error, chart.error].find(
-    (e): e is Error => e !== undefined,
-  )
+  const firstError = [
+    overview.error,
+    holdings.error,
+    activeResource.error,
+    quote.error,
+    chart.error,
+    ...(txPaneActive ? [txDetails.error] : []),
+    ...(newsMode && detailEnabled ? [news.error] : []),
+  ].find((e): e is Error => e !== undefined)
 
   const fatalError =
     overview.data === undefined && overview.error instanceof ScError &&
@@ -164,7 +196,11 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       : undefined
 
   const debugPayload: { title: string; command?: string; payload: Json | undefined } = useMemo(() => {
+    if (txPaneActive) {
+      return { title: 'transaction-details', command: txDetails.data?.command, payload: txDetails.data?.raw }
+    }
     if (detailOpen && detailEnabled) {
+      if (newsMode) return { title: 'news', command: news.data?.command, payload: news.data?.raw }
       return { title: 'quote', command: quote.data?.command, payload: quote.data?.raw }
     }
     switch (tab) {
@@ -179,7 +215,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       default:
         return { title: 'overview', command: overview.data?.command, payload: overview.data?.raw }
     }
-  }, [tab, detailOpen, detailEnabled, quote.data, holdings.data, savings.data, watchlist.data, transactions.data, overview.data])
+  }, [tab, detailOpen, detailEnabled, txPaneActive, newsMode, quote.data, news.data, txDetails.data, holdings.data, savings.data, watchlist.data, transactions.data, overview.data])
 
   // -- input ---------------------------------------------------------------
 
@@ -271,7 +307,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
 
       // Detail pane
       if (key.return || key.rightArrow || input === 'l') {
-        if (detailTarget) setDetailOpen(true)
+        if (detailTarget || txSelected?.id) setDetailOpen(true)
         return
       }
       if (key.escape || key.leftArrow || input === 'h') {
@@ -283,6 +319,10 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       }
       if (input === 't') {
         cycleTimeframe(1)
+        return
+      }
+      if (input === 'n') {
+        if (detailOpen && !txPaneActive) setNewsMode((mode) => !mode)
         return
       }
       if (input === ']') {
@@ -319,7 +359,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
 
   const spinnerFrame = useSpinnerFrame(loading, glyphs.spinner.length)
 
-  const showDetail = detailOpen && detailEnabled && tab !== 'overview'
+  const showDetail = detailOpen && (detailEnabled || txPaneActive) && tab !== 'overview'
   // Below this, a split would leave the list too narrow to read, so the detail
   // takes over the whole content area instead.
   const SPLIT_MIN_WIDTH = 96
@@ -340,6 +380,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
           ['↑↓', t.hintSelect],
           showDetail ? (['esc', t.hintBack] as const) : (['⏎', t.hintDetail] as const),
           ['[ ]', t.hintTimeframe],
+          ...(showDetail && !txPaneActive ? ([['n', t.hintNews]] as const) : []),
           ['/', t.hintSearch],
           ['r', t.hintRefresh],
           ['a', t.hintAuto],
@@ -443,7 +484,16 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
               />
             )}
 
-            {showDetail && detailTarget ? (
+            {showDetail && txPaneActive ? (
+              <TransactionDetailPane
+                details={txDetails.data?.value}
+                width={detailWidth}
+                height={contentHeight}
+                focused
+                loading={txDetails.loading}
+                error={txDetails.error}
+              />
+            ) : showDetail && detailTarget ? (
               <DetailPane
                 isin={detailTarget.isin}
                 name={detailTarget.name}
@@ -455,6 +505,9 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
                 focused
                 loading={quote.loading || chart.loading}
                 error={chart.error}
+                newsMode={newsMode}
+                news={news.data?.value}
+                newsLoading={news.loading}
               />
             ) : null}
           </>

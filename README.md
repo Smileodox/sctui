@@ -8,8 +8,8 @@
 
 A terminal dashboard for your Scalable Capital portfolio, built on the
 official [Scalable CLI](https://github.com/ScalableCapital/scalable-cli).
-Overview, positions, savings plans, watchlist, transactions, an instrument
-detail pane with chart and quote — auto-refreshing.
+Overview, positions, savings plans, watchlist, transactions with per-order
+detail, an instrument pane with chart, quote and news — auto-refreshing.
 
 > **Unofficial project.** Not affiliated with or endorsed by Scalable Capital
 > GmbH. Not investment advice — figures can be wrong, incomplete or delayed.
@@ -98,6 +98,7 @@ format.
 | `⏎` · `→` · `l` | Open detail for the selected row |
 | `esc` · `←` · `h` | Close detail |
 | `[` `]` · `t` | Chart timeframe back / forward / cycle |
+| `n` | Chart ↔ news in the detail pane |
 | `r` | Refresh now (bypass cache) |
 | `a` | Auto-refresh on / off |
 | `/` | Instrument search |
@@ -234,8 +235,6 @@ collapses to zero and lets text run together instead of clipping it.
 
 Rough order — driven by what users actually ask for:
 
-- **Transaction details** — `⏎` on a transaction opens `broker transaction details`
-- **News in the detail pane** — `broker security-news` per instrument
 - **Price alerts (read view)** — with distance-to-trigger
 - **Config file** — `~/.config/sctui` for refresh, tab, locale, theme
 - **CSV/JSON export** — one-shot mode for scripting (`sctui export holdings`)

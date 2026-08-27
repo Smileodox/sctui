@@ -74,6 +74,14 @@ for (const [columns, rows] of DETAIL_SIZES) {
 for (const rows of [12, 14, 16]) {
   cases.push({ columns: 78, rows, tab: 'holdings', keys: 'jj~', scBin: FAKE_SC })
 }
+// News mode swaps the chart for headlines; the summary line must survive intact.
+for (const [columns, rows] of DETAIL_SIZES) {
+  cases.push({ columns, rows, tab: 'holdings', keys: 'jj~n', scBin: FAKE_SC, expect: 'indexfunds' })
+}
+// The transaction detail pane, full-width on narrow terminals.
+for (const [columns, rows] of DETAIL_SIZES) {
+  cases.push({ columns, rows, tab: 'transactions', keys: '~', scBin: FAKE_SC, expect: 'ie000bi8ot95' })
+}
 for (const [columns, rows] of SHORT_SIZES) {
   cases.push({ columns, rows, tab: 'overview', keys: '', expect: TILE_LABEL })
   cases.push({ columns, rows, tab: 'overview', keys: '', scBin: FAKE_SC, expect: TILE_LABEL })

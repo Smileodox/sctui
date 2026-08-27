@@ -26,6 +26,9 @@ const rows = Number(positional[1] ?? 44)
 const tab = (positional[2] ?? 'overview') as 'overview' | 'holdings' | 'savings' | 'watchlist' | 'transactions'
 const keysToSend = args.find((a) => a.startsWith('--keys='))?.slice('--keys='.length) ?? ''
 const waitMs = Number(args.find((a) => a.startsWith('--wait='))?.slice('--wait='.length) ?? 1200)
+// How long the app gets *after* the keys — data a keypress triggers (detail
+// quote, transaction details) needs real network time against the live CLI.
+const settleMs = Number(args.find((a) => a.startsWith('--settle='))?.slice('--settle='.length) ?? 600)
 const scBin = args.find((a) => a.startsWith('--sc-bin='))?.slice('--sc-bin='.length)
 
 const chunks: string[] = []
@@ -57,13 +60,18 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 
 await sleep(waitMs)
 
-// `~` stands in for Enter and `^` for Escape, so key sequences stay shell-safe.
+// `~` stands in for Enter, `^` for Escape, and `.` is a one-second pause —
+// live requests (search results, quotes) need more than the 320 ms key gap.
 for (const key of keysToSend) {
+  if (key === '.') {
+    await sleep(1000)
+    continue
+  }
   const code = key === '~' ? '\r' : key === '^' ? '' : key
   ;(stdin as unknown as PassThrough).write(code)
   await sleep(320)
 }
-await sleep(600)
+await sleep(settleMs)
 
 instance.unmount()
 await sleep(60)

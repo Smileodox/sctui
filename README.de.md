@@ -4,8 +4,8 @@
 
 Ein Terminal-Dashboard für das Scalable-Depot, gebaut auf der offiziellen
 [Scalable CLI](https://github.com/ScalableCapital/scalable-cli). Übersicht,
-Positionen, Sparpläne, Watchlist, Transaktionen, Detailansicht mit Chart und
-Quote — mit Auto-Refresh.
+Positionen, Sparpläne, Watchlist, Transaktionen mit Orderdetails,
+Instrument-Ansicht mit Chart, Quote und News — mit Auto-Refresh.
 
 > **Inoffizielles Projekt.** Nicht mit der Scalable Capital GmbH verbunden.
 > Keine Anlageberatung — Anzeigen können falsch, unvollständig oder verzögert
@@ -65,6 +65,7 @@ oder `SCTUI_LOCALE=de-DE`) sind alle Beschriftungen und Zahlenformate deutsch
 | `↑` `↓` · `j` `k` | Zeile wechseln |
 | `⏎` · `→` | Detail öffnen, `esc` schließt |
 | `[` `]` · `t` | Chart-Zeitraum wechseln |
+| `n` | Chart ↔ News im Detail |
 | `r` / `a` | Refresh / Auto-Refresh |
 | `/` | Instrumentensuche |
 | `d` | Roh-JSON der aktuellen Ansicht |

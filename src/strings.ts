@@ -133,6 +133,22 @@ const en = {
   quoteSpread: 'Spread',
   quoteSinceBuy: 'since buy',
 
+  // News (n toggles the chart area)
+  hintNews: 'news',
+  newsTitle: 'News',
+  newsEmpty: 'No news for this instrument',
+  newsBackHint: 'n chart',
+
+  // Transaction detail
+  txDetailTitle: 'Transaction',
+  lblVenue: 'Venue',
+  lblAvgPrice: 'Avg price',
+  lblFee: 'Fee',
+  lblTax: 'Tax',
+  lblReference: 'Ref',
+  lblDocuments: 'Documents',
+  lblHistory: 'History',
+
   // Search overlay
   searchTitle: 'Search',
   searchHint: '↑↓ select · ⏎ open · esc close',
@@ -161,6 +177,7 @@ const en = {
   helpDetailClose: 'Close detail',
   helpTimeframePrev: 'Chart timeframe back / forward',
   helpTimeframeCycle: 'Cycle timeframe',
+  helpNewsToggle: 'Chart / news in the detail pane',
   helpDataSection: 'Data',
   helpRefresh: 'Refresh now (bypass cache)',
   helpAuto: 'Auto-refresh on / off',
@@ -334,6 +351,20 @@ const de: Strings = {
   quoteSpread: 'Spread',
   quoteSinceBuy: 'seit Kauf',
 
+  hintNews: 'news',
+  newsTitle: 'News',
+  newsEmpty: 'Keine News zu diesem Wert',
+  newsBackHint: 'n chart',
+
+  txDetailTitle: 'Transaktion',
+  lblVenue: 'Handelsplatz',
+  lblAvgPrice: 'Ø Kurs',
+  lblFee: 'Gebühr',
+  lblTax: 'Steuer',
+  lblReference: 'Ref',
+  lblDocuments: 'Dokumente',
+  lblHistory: 'Verlauf',
+
   searchTitle: 'Suche',
   searchHint: '↑↓ auswählen · ⏎ öffnen · esc schließen',
   searchPlaceholder: 'Name, Symbol oder ISIN…',
@@ -359,6 +390,7 @@ const de: Strings = {
   helpDetailClose: 'Detail schließen',
   helpTimeframePrev: 'Chart-Zeitraum zurück / vor',
   helpTimeframeCycle: 'Zeitraum durchschalten',
+  helpNewsToggle: 'Chart / News im Detail umschalten',
   helpDataSection: 'Daten',
   helpRefresh: 'Jetzt aktualisieren (Cache umgehen)',
   helpAuto: 'Auto-Refresh an / aus',

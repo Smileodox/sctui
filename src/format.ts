@@ -147,6 +147,22 @@ export function toDate(value: Date | string | number | undefined | null): Date |
   return Number.isNaN(d.getTime()) ? undefined : d
 }
 
+/** Greedy word wrap; overlong words are left intact and clipped by the caller. */
+export function wrap(text: string, width: number): string[] {
+  const lines: string[] = []
+  let current = ''
+  for (const word of text.split(/\s+/)) {
+    if (current === '') current = word
+    else if (current.length + 1 + word.length <= width) current += ` ${word}`
+    else {
+      lines.push(current)
+      current = word
+    }
+  }
+  if (current !== '') lines.push(current)
+  return lines.map((line) => truncate(line, width))
+}
+
 /** Truncate to `width`, appending `…` when clipped. Never returns a longer string. */
 export function truncate(text: string, width: number): string {
   if (width <= 0) return ''
