@@ -38,6 +38,7 @@ const SECTIONS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['a', t.helpAuto],
       ['/', t.helpSearch],
       ['d', t.helpJson],
+      ['+', t.helpNewPlan],
     ],
   },
   {

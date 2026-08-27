@@ -131,6 +131,44 @@ export interface NewsSummary {
   items: Array<{ headline: string; time?: string; source?: string }>
 }
 
+/** `broker savings-plans config` — the broker's rules for a new plan. */
+export interface SavingsPlanConfig {
+  minAmount?: number
+  maxAmount?: number
+  frequencies: string[]
+  paymentMethods: string[]
+  defaultFrequency?: string
+  defaultDayOfMonth?: number
+  defaultPaymentMethod?: string
+  raw: Json
+}
+
+/** What the user wants to create — the wizard's working state. */
+export interface SavingsPlanDraft {
+  isin: string
+  amount: number
+  frequency?: string
+  dayOfMonth?: number
+}
+
+/**
+ * The preview the CLI returns for `savings-plans add` without `--confirm`.
+ * `confirmationId` is the whole point: executing requires echoing it back,
+ * so nothing can be created that was not shown first.
+ */
+export interface SavingsPlanPreview {
+  confirmationId?: string
+  isin?: string
+  name?: string
+  amount?: number
+  frequency?: string
+  dayOfMonth?: number
+  paymentMethod?: string
+  firstExecution?: string
+  warnings: string[]
+  raw: Json
+}
+
 /** `broker cash-breakdown` — cash never appears in `broker overview`. */
 export interface CashBreakdown {
   currency: string
@@ -596,6 +634,48 @@ export function normalizeNews(payload: Json | undefined): NewsSummary {
     long: getStr(row, ['summary.long'], true),
     updatedAt: getStr(row, ['summary.lastUpdated']),
     items,
+  }
+}
+
+export function normalizeSavingsPlanConfig(payload: Json | undefined): SavingsPlanConfig {
+  const row = isRecord(payload) ? payload : {}
+  const list = (keys: string[]): string[] =>
+    getList(row as Json, keys)
+      .map((entry) => (typeof entry === 'string' ? entry : undefined))
+      .filter((entry): entry is string => entry !== undefined)
+  return {
+    // The CLI reports the limits as strings ("5000"), hence getNum's coercion.
+    minAmount: getNum(row, ['amountLimits.min', 'minAmount']),
+    maxAmount: getNum(row, ['amountLimits.max', 'maxAmount']),
+    frequencies: list(['frequencies']),
+    paymentMethods: list(['paymentMethods']),
+    defaultFrequency: getStr(row, ['defaults.frequency']),
+    defaultDayOfMonth: getNum(row, ['defaults.dayOfMonth']),
+    defaultPaymentMethod: getStr(row, ['defaults.paymentMethod']),
+    raw: (payload ?? null) as Json,
+  }
+}
+
+export function normalizeSavingsPlanPreview(payload: Json | undefined): SavingsPlanPreview {
+  const row = isRecord(payload) ? payload : {}
+  const warnings = getList(row as Json, ['warnings', 'hints', 'messages'])
+    .map((entry) => (typeof entry === 'string' ? entry : isRecord(entry) ? getStr(entry, ['message', 'text']) : undefined))
+    .filter((entry): entry is string => entry !== undefined && entry.length > 0)
+  return {
+    confirmationId: getStr(
+      row,
+      ['confirmationId', 'confirmation.id', 'preview.confirmationId', 'confirmId', 'confirmation'],
+      true,
+    ),
+    isin: getStr(row, ISIN_KEYS, true),
+    name: getStr(row, NAME_KEYS, true),
+    amount: getNum(row, ['amount', 'preview.amount', 'rate']),
+    frequency: getStr(row, ['frequency', 'preview.frequency']),
+    dayOfMonth: getNum(row, ['dayOfMonth', 'preview.dayOfMonth']),
+    paymentMethod: getStr(row, ['paymentMethod', 'preview.paymentMethod']),
+    firstExecution: getStr(row, ['nextExecutionDate', 'firstExecutionDate', 'yearMonth', 'preview.yearMonth']),
+    warnings,
+    raw: (payload ?? null) as Json,
   }
 }
 

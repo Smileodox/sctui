@@ -11,6 +11,7 @@ import { ScError } from './sc/exec.js'
 import { TIMEFRAMES, type DataSource, type Timeframe } from './sc/client.js'
 import type { Json } from './sc/json.js'
 import { t } from './strings.js'
+import { CreatePlanOverlay } from './views/CreatePlanOverlay.js'
 import { DebugOverlay } from './views/DebugOverlay.js'
 import { DetailPane } from './views/DetailPane.js'
 import { HelpOverlay } from './views/HelpOverlay.js'
@@ -32,7 +33,7 @@ const TABS: readonly Tab[] = [
 ]
 
 type TabId = (typeof TABS)[number]['id']
-type OverlayId = 'help' | 'search' | 'debug' | null
+type OverlayId = 'help' | 'search' | 'debug' | 'create' | null
 
 export interface AppProps {
   client: DataSource
@@ -325,6 +326,10 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
         if (detailOpen && !txPaneActive) setNewsMode((mode) => !mode)
         return
       }
+      if (input === '+') {
+        if (tab === 'savings') setOverlay('create')
+        return
+      }
       if (input === ']') {
         cycleTimeframe(1)
         return
@@ -342,7 +347,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
       else if (input === 'g') moveSelection(-rowCount)
       else if (input === 'G') moveSelection(rowCount)
     },
-    { isActive: overlay !== 'search' },
+    { isActive: overlay !== 'search' && overlay !== 'create' },
   )
 
   // -- layout --------------------------------------------------------------
@@ -381,6 +386,7 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
           showDetail ? (['esc', t.hintBack] as const) : (['⏎', t.hintDetail] as const),
           ['[ ]', t.hintTimeframe],
           ...(showDetail && !txPaneActive ? ([['n', t.hintNews]] as const) : []),
+          ...(tab === 'savings' && !showDetail ? ([['+', t.hintNewPlan]] as const) : []),
           ['/', t.hintSearch],
           ['r', t.hintRefresh],
           ['a', t.hintAuto],
@@ -421,6 +427,14 @@ export function App({ client, autoRefreshSeconds, initialTab = 'overview' }: App
             width={width}
             height={contentHeight}
             scrollOffset={debugScroll}
+          />
+        ) : overlay === 'create' ? (
+          <CreatePlanOverlay
+            client={client}
+            width={width}
+            height={contentHeight}
+            onCreated={() => savings.reload(true)}
+            onClose={() => setOverlay(null)}
           />
         ) : overlay === 'search' ? (
           <SearchOverlay

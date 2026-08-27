@@ -13,9 +13,11 @@ detail, an instrument pane with chart, quote and news — auto-refreshing.
 
 > **Unofficial project.** Not affiliated with or endorsed by Scalable Capital
 > GmbH. Not investment advice — figures can be wrong, incomplete or delayed.
-> The current version is strictly **read-only**: it cannot place orders or
+> By default sctui is strictly **read-only**: it cannot place orders or
 > change anything in your account
-> ([how that is enforced](#read-only-by-construction)).
+> ([how that is enforced](#read-only-by-default)). The single write feature —
+> creating savings plans — [is opt-in](#creating-savings-plans-opt-in) and
+> previewed by the broker before anything is confirmed.
 
 ![sctui in demo mode](assets/demo.gif)
 
@@ -77,6 +79,7 @@ sctui [options]
   --refresh <seconds>    Auto-refresh interval (default: 60, minimum: 5)
   --no-refresh           Disable auto-refresh
   --tab <name>           Start tab: overview | holdings | savings | watchlist | transactions
+  --enable-writes        Allow creating savings plans (preview + confirm; off by default)
   --sc-bin <path>        Alternative path to the sc binary
   --no-alt-screen        Render in the normal buffer (useful for debugging)
   -h, --help             Help
@@ -99,6 +102,7 @@ format.
 | `esc` · `←` · `h` | Close detail |
 | `[` `]` · `t` | Chart timeframe back / forward / cycle |
 | `n` | Chart ↔ news in the detail pane |
+| `+` | New savings plan (savings tab, [opt-in](#creating-savings-plans-opt-in)) |
 | `r` | Refresh now (bypass cache) |
 | `a` | Auto-refresh on / off |
 | `/` | Instrument search |
@@ -106,10 +110,10 @@ format.
 | `?` | Help |
 | `q` · `ctrl-c` | Quit |
 
-## Read-only, by construction
+## Read-only, by default
 
-The current version of sctui cannot run a mutating `sc` command — no trading,
-no watchlist edits, no price alerts. Enforced in
+Unless you opt in (see below), sctui cannot run a mutating `sc` command — no
+trading, no watchlist edits, no price alerts. Enforced in
 [`src/sc/exec.ts`](src/sc/exec.ts):
 
 - Command path and flags are passed **separately** (`runSc(path, args)`). The
@@ -126,10 +130,33 @@ no watchlist edits, no price alerts. Enforced in
 
 How to audit this yourself in five minutes: [SECURITY.md](SECURITY.md).
 
-Whether sctui stays read-only forever is an open product question. If write
-features ever land, they will be opt-in, separately guarded, and clearly
-released as such — the guarantee above describes every version that carries
-it in its README.
+## Creating savings plans (opt-in)
+
+The one thing sctui can change — if, and only if, you start it with:
+
+```sh
+sctui --enable-writes
+```
+
+Then `+` on the savings-plans tab opens a wizard: ISIN → amount → interval →
+execution day → **the broker's own preview** → type the confirmation word.
+The safety model is layered:
+
+- The write path is a **second, separate allowlist** in `exec.ts` holding
+  exactly one command (`broker savings-plans add`). Orders, watchlist edits
+  and everything else stay impossible — enforced by the same unit tests and
+  CI gate as the read path.
+- The CLI itself requires a **confirmation id that only the preview returns**,
+  so nothing can be created that was not shown first.
+- `--accept-unsuitable` (bypassing the broker's appropriateness check) is
+  forbidden on every path. Not a flag, not a config option — not a feature.
+- Without `--enable-writes` the wizard only explains how to opt in; the flag
+  is never persisted.
+
+Note: a session created with `sc login --local-read-only` refuses mutations
+at the binary level — to use the wizard you need a regular `sc login`
+session. That trade-off is yours to make; the read-only login remains the
+recommendation if you never create plans from the terminal.
 
 ## What the CLI provides
 

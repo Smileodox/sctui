@@ -16,6 +16,9 @@ import type {
   NewsSummary,
   Quote,
   SavingsPlan,
+  SavingsPlanConfig,
+  SavingsPlanDraft,
+  SavingsPlanPreview,
   SearchResult,
   Transaction,
   TransactionDetails,
@@ -289,7 +292,11 @@ function findInstrument(isin: string): Instrument {
 }
 
 export class DemoClient implements DataSource {
+  /** Plans created through the demo wizard — the demo is a sandbox, not a wall. */
+  private readonly createdPlans: SavingsPlan[] = []
+
   readonly kind = 'demo' as const
+  readonly canWrite = true
 
   whoami(options: FetchOptions = {}): Promise<Fetched<string | undefined>> {
     return settle(t.demoIdentity, { demo: true } as Json, 'demo: whoami', options.signal)
@@ -381,6 +388,65 @@ export class DemoClient implements DataSource {
     return settle(value, { isin, demo: true } as Json, `demo: sc broker security-news --isin ${isin} --json`, options.signal)
   }
 
+  savingsPlanConfig(isin: string, options: FetchOptions = {}): Promise<Fetched<SavingsPlanConfig>> {
+    const value: SavingsPlanConfig = {
+      minAmount: 1,
+      maxAmount: 5000,
+      frequencies: ['MONTHLY', 'BI_MONTHLY', 'QUARTERLY', 'SEMI_ANNUALLY', 'ANNUALLY'],
+      paymentMethods: ['REFERENCE_ACCOUNT', 'BUYING_POWER_WITH_REFERENCE_ACCOUNT_FALLBACK'],
+      defaultFrequency: 'MONTHLY',
+      defaultDayOfMonth: 4,
+      defaultPaymentMethod: 'REFERENCE_ACCOUNT',
+      raw: { isin, demo: true } as Json,
+    }
+    return settle(value, value.raw, `demo: sc broker savings-plans config --isin ${isin} --json`, options.signal)
+  }
+
+  previewSavingsPlan(draft: SavingsPlanDraft, options: FetchOptions = {}): Promise<Fetched<SavingsPlanPreview>> {
+    const instrument = INSTRUMENTS.find((entry) => entry.isin === draft.isin)
+    const value: SavingsPlanPreview = {
+      confirmationId: 'demo-confirmation',
+      isin: draft.isin,
+      name: instrument?.name,
+      amount: draft.amount,
+      frequency: draft.frequency ?? 'MONTHLY',
+      dayOfMonth: draft.dayOfMonth ?? 4,
+      paymentMethod: 'REFERENCE_ACCOUNT',
+      firstExecution: nextExecutionIso(draft.dayOfMonth ?? 4),
+      warnings: [],
+      raw: { demo: true } as Json,
+    }
+    return settle(value, value.raw, 'demo: sc broker savings-plans add … --json', options.signal)
+  }
+
+  confirmSavingsPlan(
+    draft: SavingsPlanDraft,
+    _confirmationId: string,
+    options: FetchOptions = {},
+  ): Promise<Fetched<SavingsPlanPreview>> {
+    // The demo actually keeps the plan, so the list refresh shows the result.
+    this.createdPlans.push({
+      isin: draft.isin,
+      name: INSTRUMENTS.find((entry) => entry.isin === draft.isin)?.name ?? draft.isin,
+      type: INSTRUMENTS.find((entry) => entry.isin === draft.isin)?.type,
+      currency: 'EUR',
+      amount: draft.amount,
+      frequency: draft.frequency ?? 'MONTHLY',
+      dayOfMonth: draft.dayOfMonth ?? 4,
+      nextExecution: nextExecutionIso(draft.dayOfMonth ?? 4),
+      raw: { demo: true } as Json,
+    })
+    const value: SavingsPlanPreview = {
+      confirmationId: 'demo-confirmation',
+      isin: draft.isin,
+      amount: draft.amount,
+      frequency: draft.frequency ?? 'MONTHLY',
+      warnings: [],
+      raw: { demo: true, created: true } as Json,
+    }
+    return settle(value, value.raw, 'demo: sc broker savings-plans add … --confirm demo-confirmation --json', options.signal)
+  }
+
   savingsPlans(options: FetchOptions = {}): Promise<Fetched<SavingsPlan[]>> {
     // Instrument index, monthly rate, execution day — the two world ETFs and gold.
     const PLANS: Array<[number, number, number]> = [
@@ -402,9 +468,10 @@ export class DemoClient implements DataSource {
         raw: { isin: instrument.isin, amount, frequency: 'MONTHLY', day_of_month: day } as Json,
       }
     })
+    const all = [...value, ...this.createdPlans]
     return settle(
-      value,
-      value.map((plan) => plan.raw) as Json,
+      all,
+      all.map((plan) => plan.raw) as Json,
       'demo: sc broker savings-plans --json',
       options.signal,
     )

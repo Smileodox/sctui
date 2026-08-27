@@ -12,6 +12,7 @@ interface Options {
   tab: 'overview' | 'holdings' | 'savings' | 'watchlist' | 'transactions'
   scBin?: string
   altScreen: boolean
+  enableWrites: boolean
 }
 
 const USAGE = t.usage
@@ -24,6 +25,7 @@ function parseArgs(argv: string[]): Options | { help: true } | { version: true }
     refreshSeconds: 60,
     tab: 'overview',
     altScreen: true,
+    enableWrites: false,
   }
 
   for (let i = 0; i < argv.length; i++) {
@@ -43,6 +45,9 @@ function parseArgs(argv: string[]): Options | { help: true } | { version: true }
         break
       case '--no-alt-screen':
         options.altScreen = false
+        break
+      case '--enable-writes':
+        options.enableWrites = true
         break
       case '--refresh': {
         const value = Number(argv[++i])
@@ -82,7 +87,7 @@ if ('help' in parsed) {
 }
 
 if ('version' in parsed) {
-  process.stdout.write('sctui 0.3.0\n')
+  process.stdout.write('sctui 0.4.0\n')
   process.exit(0)
 }
 
@@ -91,7 +96,9 @@ if ('error' in parsed) {
   process.exit(2)
 }
 
-const client: DataSource = parsed.demo ? new DemoClient() : new ScClient({ bin: parsed.scBin })
+const client: DataSource = parsed.demo
+  ? new DemoClient()
+  : new ScClient({ bin: parsed.scBin, enableWrites: parsed.enableWrites })
 
 const instance = render(
   <App client={client} autoRefreshSeconds={parsed.refreshSeconds} initialTab={parsed.tab} />,

@@ -149,6 +149,30 @@ const en = {
   lblDocuments: 'Documents',
   lblHistory: 'History',
 
+  // Savings-plan wizard (writes, opt-in)
+  writesDisabled: 'Writes are disabled — start sctui with --enable-writes',
+  hintNewPlan: 'new plan',
+  planWizardTitle: 'New savings plan',
+  planStepIsin: 'ISIN of the instrument to save into',
+  planStepAmount: (min: string, max: string) => `Amount per execution (${min}–${max})`,
+  planStepFrequency: 'Interval — ←/→ to choose, ⏎ to accept',
+  planStepDay: 'Execution day of month (1–31)',
+  planWizardNext: '⏎ next · esc back',
+  planInvalidIsin: 'That does not look like an ISIN (e.g. IE00B4L5Y983)',
+  planInvalidAmount: 'Amount out of range',
+  planInvalidDay: 'Day must be between 1 and 31',
+  planPreviewTitle: 'Preview — nothing has been created yet',
+  planPreviewLoading: 'Asking the broker for a preview…',
+  planNoConfirmationId: 'The preview returned no confirmation id — press d for the raw response',
+  planConfirmWord: 'yes',
+  planConfirmPrompt: (word: string) => `Type "${word}" and press ⏎ to create this plan`,
+  planConfirming: 'Creating the savings plan…',
+  planCreated: 'Savings plan created.',
+  planCreatedHint: 'esc closes — the list refreshes itself',
+  planWriteOff: 'This build is running read-only.',
+  planWriteOffHint: 'Restart with: sctui --enable-writes  (see README — writes are opt-in)',
+  planDemoNote: 'Demo mode: the plan is simulated, nothing leaves this terminal.',
+
   // Search overlay
   searchTitle: 'Search',
   searchHint: '↑↓ select · ⏎ open · esc close',
@@ -178,6 +202,7 @@ const en = {
   helpTimeframePrev: 'Chart timeframe back / forward',
   helpTimeframeCycle: 'Cycle timeframe',
   helpNewsToggle: 'Chart / news in the detail pane',
+  helpNewPlan: 'New savings plan (savings tab, needs --enable-writes)',
   helpDataSection: 'Data',
   helpRefresh: 'Refresh now (bypass cache)',
   helpAuto: 'Auto-refresh on / off',
@@ -238,6 +263,7 @@ const en = {
     --tab <name>           Start tab: overview | holdings | savings | watchlist | transactions
     --sc-bin <path>        Alternative path to the sc binary
     --no-alt-screen        Render in the normal buffer (useful for debugging)
+    --enable-writes        Allow creating savings plans (preview + confirm; off by default)
     -h, --help             This help
     -v, --version          Version
 
@@ -365,6 +391,29 @@ const de: Strings = {
   lblDocuments: 'Dokumente',
   lblHistory: 'Verlauf',
 
+  writesDisabled: 'Schreiben ist deaktiviert — sctui mit --enable-writes starten',
+  hintNewPlan: 'neuer plan',
+  planWizardTitle: 'Neuer Sparplan',
+  planStepIsin: 'ISIN des Instruments, das bespart werden soll',
+  planStepAmount: (min: string, max: string) => `Betrag pro Ausführung (${min}–${max})`,
+  planStepFrequency: 'Intervall — ←/→ wählen, ⏎ übernehmen',
+  planStepDay: 'Ausführungstag im Monat (1–31)',
+  planWizardNext: '⏎ weiter · esc zurück',
+  planInvalidIsin: 'Das sieht nicht nach einer ISIN aus (z. B. IE00B4L5Y983)',
+  planInvalidAmount: 'Betrag außerhalb der Grenzen',
+  planInvalidDay: 'Tag muss zwischen 1 und 31 liegen',
+  planPreviewTitle: 'Vorschau — noch ist nichts angelegt',
+  planPreviewLoading: 'Broker wird um eine Vorschau gebeten…',
+  planNoConfirmationId: 'Die Vorschau lieferte keine Confirmation-ID — d zeigt die Rohantwort',
+  planConfirmWord: 'ja',
+  planConfirmPrompt: (word: string) => `"${word}" tippen und ⏎ drücken, um den Plan anzulegen`,
+  planConfirming: 'Sparplan wird angelegt…',
+  planCreated: 'Sparplan angelegt.',
+  planCreatedHint: 'esc schließt — die Liste aktualisiert sich selbst',
+  planWriteOff: 'Diese Sitzung läuft read-only.',
+  planWriteOffHint: 'Neu starten mit: sctui --enable-writes  (siehe README — Schreiben ist opt-in)',
+  planDemoNote: 'Demo-Modus: der Plan wird simuliert, nichts verlässt dieses Terminal.',
+
   searchTitle: 'Suche',
   searchHint: '↑↓ auswählen · ⏎ öffnen · esc schließen',
   searchPlaceholder: 'Name, Symbol oder ISIN…',
@@ -391,6 +440,7 @@ const de: Strings = {
   helpTimeframePrev: 'Chart-Zeitraum zurück / vor',
   helpTimeframeCycle: 'Zeitraum durchschalten',
   helpNewsToggle: 'Chart / News im Detail umschalten',
+  helpNewPlan: 'Neuer Sparplan (Sparpläne-Tab, braucht --enable-writes)',
   helpDataSection: 'Daten',
   helpRefresh: 'Jetzt aktualisieren (Cache umgehen)',
   helpAuto: 'Auto-Refresh an / aus',
@@ -447,6 +497,7 @@ const de: Strings = {
     --tab <name>           Starttab: overview | holdings | savings | watchlist | transactions
     --sc-bin <pfad>        Abweichender Pfad zur sc-Binary
     --no-alt-screen        Im normalen Puffer rendern (nützlich zum Debuggen)
+    --enable-writes        Sparpläne anlegen erlauben (Preview + Bestätigung; standardmäßig aus)
     -h, --help             Diese Hilfe
     -v, --version          Version
 

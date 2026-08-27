@@ -6,7 +6,7 @@
  * demoed without a Scalable account. Both satisfy `DataSource`.
  */
 
-import { runSc, ScError, type ScRunOptions } from './exec.js'
+import { runSc, runScWrite, ScError, type ScRunOptions } from './exec.js'
 import { extractJson, unwrapEnvelope, type Json } from './json.js'
 import { LANG, t } from '../strings.js'
 import {
@@ -17,6 +17,8 @@ import {
   normalizeIdentity,
   normalizeOvernight,
   normalizeQuote,
+  normalizeSavingsPlanConfig,
+  normalizeSavingsPlanPreview,
   normalizeSavingsPlans,
   normalizeSearch,
   normalizeTransactionDetails,
@@ -31,6 +33,9 @@ import {
   type PortfolioSummary,
   type Quote,
   type SavingsPlan,
+  type SavingsPlanConfig,
+  type SavingsPlanDraft,
+  type SavingsPlanPreview,
   type SearchResult,
   type Transaction,
   type TransactionDetails,
@@ -59,6 +64,8 @@ export interface FetchOptions {
 
 export interface DataSource {
   readonly kind: 'live' | 'demo'
+  /** True when the user opted into the write path (`--enable-writes`). */
+  readonly canWrite: boolean
   whoami(options?: FetchOptions): Promise<Fetched<string | undefined>>
   cash(options?: FetchOptions): Promise<Fetched<CashBreakdown>>
   overview(options?: FetchOptions): Promise<Fetched<PortfolioSummary>>
@@ -68,6 +75,11 @@ export interface DataSource {
   savingsPlans(options?: FetchOptions): Promise<Fetched<SavingsPlan[]>>
   transactionDetails(id: string, options?: FetchOptions): Promise<Fetched<TransactionDetails>>
   news(isin: string, options?: FetchOptions): Promise<Fetched<NewsSummary>>
+  savingsPlanConfig(isin: string, options?: FetchOptions): Promise<Fetched<SavingsPlanConfig>>
+  /** Dry by design: the CLI returns a confirmation id, nothing is created. */
+  previewSavingsPlan(draft: SavingsPlanDraft, options?: FetchOptions): Promise<Fetched<SavingsPlanPreview>>
+  /** The only mutating call in the app. Requires the id from the preview. */
+  confirmSavingsPlan(draft: SavingsPlanDraft, confirmationId: string, options?: FetchOptions): Promise<Fetched<SavingsPlanPreview>>
   overnight(options?: FetchOptions): Promise<Fetched<OvernightAccount>>
   quote(isin: string, options?: FetchOptions): Promise<Fetched<Quote>>
   chart(isin: string, timeframe: Timeframe, options?: FetchOptions): Promise<Fetched<ChartSeries>>
@@ -90,6 +102,7 @@ const TTL_MS: Record<string, number> = {
   savingsPlans: 5 * 60_000,
   txDetails: 5 * 60_000,
   news: 10 * 60_000,
+  planConfig: 5 * 60_000,
   overnight: 60_000,
   quote: 10_000,
   chart: 60_000,
@@ -141,15 +154,31 @@ function multiply(a?: number, b?: number): number | undefined {
   return a === undefined || b === undefined ? undefined : a * b
 }
 
+/** CLI enums are SCREAMING_SNAKE, the CLI's flags take kebab-case. */
+function draftArgs(draft: SavingsPlanDraft): string[] {
+  return [
+    '--isin',
+    draft.isin,
+    '--amount',
+    String(draft.amount),
+    ...(draft.frequency ? ['--frequency', draft.frequency.toLowerCase().replace(/_/g, '-')] : []),
+    ...(draft.dayOfMonth !== undefined ? ['--day-of-month', String(draft.dayOfMonth)] : []),
+    '--json',
+  ]
+}
+
 export class ScClient implements DataSource {
   readonly kind = 'live' as const
+  readonly canWrite: boolean
 
   private readonly cache = new Map<string, CacheEntry>()
   private readonly inFlight = new Map<string, Promise<unknown>>()
   private readonly runOptions: ScRunOptions
 
-  constructor(runOptions: ScRunOptions = {}) {
-    this.runOptions = runOptions
+  constructor(runOptions: ScRunOptions & { enableWrites?: boolean } = {}) {
+    const { enableWrites, ...rest } = runOptions
+    this.runOptions = rest
+    this.canWrite = enableWrites === true
   }
 
   clearCache(): void {
@@ -390,6 +419,58 @@ export class ScClient implements DataSource {
       (payload) => normalizeChart(payload, isin, timeframe),
       options,
     )
+  }
+
+  savingsPlanConfig(isin: string, options: FetchOptions = {}): Promise<Fetched<SavingsPlanConfig>> {
+    return this.fetch(
+      `planConfig:${isin}`,
+      'planConfig',
+      ['broker', 'savings-plans', 'config'],
+      ['--isin', isin, '--json'],
+      (payload) => normalizeSavingsPlanConfig(payload),
+      options,
+    )
+  }
+
+  previewSavingsPlan(draft: SavingsPlanDraft, options: FetchOptions = {}): Promise<Fetched<SavingsPlanPreview>> {
+    return this.write(draftArgs(draft), options)
+  }
+
+  confirmSavingsPlan(
+    draft: SavingsPlanDraft,
+    confirmationId: string,
+    options: FetchOptions = {},
+  ): Promise<Fetched<SavingsPlanPreview>> {
+    return this.write([...draftArgs(draft), '--confirm', confirmationId], options)
+  }
+
+  /**
+   * The write path: no cache, no dedup — a preview must always be fresh and a
+   * confirmation must never be replayed from anywhere but the user's hand.
+   */
+  private async write(args: string[], options: FetchOptions): Promise<Fetched<SavingsPlanPreview>> {
+    const path = ['broker', 'savings-plans', 'add']
+    const run = await runScWrite(path, args, this.canWrite, {
+      ...this.runOptions,
+      signal: options.signal,
+    })
+    const document = extractJson(run.stdout)
+    if (document === undefined && run.stdout.trim().length > 0) {
+      throw new ScError('SC_PARSE', 'Could not parse JSON from sc output', {
+        argv: run.argv,
+        stdout: run.stdout,
+        stderr: run.stderr,
+      })
+    }
+    const envelope = unwrapEnvelope(document)
+    if (envelope.error) throw envelopeError(envelope.error, run.argv, run.stdout, run.stderr)
+    return {
+      value: normalizeSavingsPlanPreview(envelope.payload ?? envelope.container),
+      raw: document,
+      command: `sc ${run.argv.join(' ')}`,
+      fetchedAt: Date.now(),
+      durationMs: run.durationMs,
+    }
   }
 
   search(query: string, options: FetchOptions = {}): Promise<Fetched<SearchResult[]>> {

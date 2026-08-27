@@ -10,7 +10,7 @@
  */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { assertReadOnly, ScError } from '../src/sc/exec.js'
+import { assertReadOnly, assertWrite, ScError } from '../src/sc/exec.js'
 import { ScClient } from '../src/sc/client.js'
 
 /** Erwartet SC_FORBIDDEN — alles andere (auch Durchlassen) ist ein Fehlschlag. */
@@ -131,4 +131,44 @@ test('search() weist Queries mit führendem "-" ab, bevor ein Prozess startet', 
       `sollte abgewiesen werden: ${JSON.stringify(query)}`,
     )
   }
+})
+
+// ── Write path: opt-in, tiny, and never a trading backdoor ──────────────────
+
+const ADD = ['broker', 'savings-plans', 'add']
+const ADD_ARGS = ['--isin', 'IE00B4L5Y983', '--amount', '25', '--json']
+
+function assertWriteForbidden(path: string[], args: string[], enabled: boolean): void {
+  assert.throws(
+    () => assertWrite(path, args, enabled),
+    (error: unknown) => error instanceof ScError && error.code === 'SC_FORBIDDEN',
+    `sollte verboten sein: sc ${[...path, ...args].join(' ')} (writes=${enabled})`,
+  )
+}
+
+test('ohne --enable-writes ist auch das erlaubte Kommando verboten', () => {
+  assertWriteForbidden(ADD, ADD_ARGS, false)
+})
+
+test('die Write-Allowlist umfasst genau ein Kommando', () => {
+  assertWriteForbidden(['broker', 'trade'], ['--json'], true)
+  assertWriteForbidden(['broker', 'trade', 'place'], ['--json'], true)
+  assertWriteForbidden(['broker', 'watchlist', 'add'], ['--json'], true)
+  assertWriteForbidden(['broker', 'savings-plans', 'remove'], ['--json'], true)
+  assertWriteForbidden(['broker', 'savings-plans'], ['--json'], true)
+  assertWriteForbidden(['login'], [], true)
+})
+
+test('aktiviert + allowlisted passiert, auch mit --confirm <id>', () => {
+  assert.doesNotThrow(() => assertWrite(ADD, ADD_ARGS, true))
+  assert.doesNotThrow(() => assertWrite(ADD, [...ADD_ARGS, '--confirm', 'abc123'], true))
+})
+
+test('--accept-unsuitable ist auf jedem Pfad verboten', () => {
+  assertWriteForbidden(ADD, [...ADD_ARGS, '--accept-unsuitable'], true)
+  assertForbidden(['broker', 'quote'], ['--accept-unsuitable'])
+})
+
+test('der Lesepfad kennt das Write-Kommando weiterhin nicht', () => {
+  assertForbidden(['broker', 'savings-plans', 'add'], ADD_ARGS)
 })

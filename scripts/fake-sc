@@ -193,6 +193,47 @@ JSON
     ;;
 
   "broker savings-plans")
+    # $3 dispatches the subcommands: `config` (read), `add` (preview, or
+    # confirm when --confirm is among the args), plain --json (list).
+    if [ "$3" = "config" ]; then
+      cat <<JSON
+{"ok":true,"command":"broker.savings-plans.config","data":{$ACCOUNT,
+ "result":{"amount_limits":{"max":"5000","min":"1"},
+  "defaults":{"day_of_month":4,"dynamization_rate":"0","frequency":"MONTHLY",
+   "payment_method":"REFERENCE_ACCOUNT","year_month":"2026-09"},
+  "dynamization_rates":["0","2","3","5","8"],
+  "frequencies":["MONTHLY","BI_MONTHLY","QUARTERLY","SEMI_ANNUALLY","ANNUALLY"],
+  "payment_methods":["REFERENCE_ACCOUNT","BUYING_POWER_WITH_REFERENCE_ACCOUNT_FALLBACK"]}}}
+JSON
+      exit 0
+    fi
+    if [ "$3" = "add" ]; then
+      isin=""; amount=""; confirm=""
+      shift 3
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --isin) isin=$2; shift 2 ;;
+          --amount) amount=$2; shift 2 ;;
+          --confirm) confirm=$2; shift 2 ;;
+          *) shift ;;
+        esac
+      done
+      if [ -n "$confirm" ]; then
+        cat <<JSON
+{"ok":true,"command":"broker.savings-plans.add","data":{$ACCOUNT,
+ "result":{"status":"CREATED","isin":"$isin","amount":$amount,"frequency":"MONTHLY",
+  "day_of_month":4,"payment_method":"REFERENCE_ACCOUNT","confirmation_id":"$confirm"}}}
+JSON
+      else
+        cat <<JSON
+{"ok":true,"command":"broker.savings-plans.add","data":{$ACCOUNT,
+ "result":{"confirmation_id":"fake-confirmation-1","isin":"$isin","amount":$amount,
+  "frequency":"MONTHLY","day_of_month":4,"payment_method":"REFERENCE_ACCOUNT",
+  "year_month":"2026-09","warnings":[]}}}
+JSON
+      fi
+      exit 0
+    fi
     # Mirrors sc 1.0.0: plan rows carry no currency of their own, the redundant
     # epoch-day twin sits beside the ISO date, and the total is pre-summed.
     cat <<JSON

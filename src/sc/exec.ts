@@ -1,16 +1,19 @@
 /**
  * Thin process wrapper around the official Scalable CLI (`sc`).
  *
- * Everything this app knows about your portfolio comes through here. Two
+ * Everything this app knows about your portfolio comes through here. Three
  * deliberate properties:
  *
- *  1. **Read-only by construction.** A call names a command *path* (the
- *     subcommand tokens) separately from its flags. The path must match an
- *     entry in `READ_ONLY_COMMANDS` exactly — not as a prefix — so
+ *  1. **Read-only by default.** A call names a command *path* (the subcommand
+ *     tokens) separately from its flags. The path must match an entry in
+ *     `READ_ONLY_COMMANDS` exactly — not as a prefix — so
  *     `broker watchlist add` can never slip through as `broker watchlist`.
- *     There is no code path in this app that can place, confirm, or cancel an
- *     order.
- *  2. **Bounded.** Concurrency is capped and every call has a timeout, so a
+ *  2. **Writes are opt-in, tiny, and previewed.** With `--enable-writes` a
+ *     second, separate allowlist (`WRITE_COMMANDS`) opens — currently just
+ *     savings-plan creation, which the CLI itself forces through a
+ *     preview-then-confirm-by-id flow. There is no code path in this app
+ *     that can place, confirm, or cancel an order, on either list.
+ *  3. **Bounded.** Concurrency is capped and every call has a timeout, so a
  *     hung CLI can never wedge the UI.
  */
 
@@ -93,12 +96,53 @@ const READ_ONLY_COMMANDS: readonly string[] = [
   'broker watchlist',
   'broker price-alerts',
   'broker savings-plans',
+  'broker savings-plans config',
 ]
 
 const READ_ONLY_SET = new Set(READ_ONLY_COMMANDS)
 
-/** Flags that turn a preview into a real, irreversible action. Never allowed. */
+/** Flags that turn a preview into a real, irreversible action. Never allowed on the read path. */
 const FORBIDDEN_FLAGS = new Set(['--confirm', '--accept-unsuitable', '--yes', '-y'])
+
+/**
+ * The write path. Everything about it is deliberately separate from the
+ * read-only machinery above:
+ *
+ *  - It only exists at runtime when the user starts with `--enable-writes`;
+ *    the flag is per-invocation state, never persisted.
+ *  - Its allowlist is exact-match, like the read one, and currently holds a
+ *    single command. Order placement is not on it and must never slip in as
+ *    a side effect of some other feature.
+ *  - `--confirm` is allowed here because the CLI's own design makes it safe:
+ *    it takes a confirmation id that only a prior preview call returns, so
+ *    this app cannot execute anything it has not shown the user first.
+ *  - `--accept-unsuitable` bypasses the broker's appropriateness check.
+ *    That is not a feature; it stays forbidden on every path.
+ */
+const WRITE_COMMANDS: readonly string[] = ['broker savings-plans add']
+const WRITE_SET = new Set(WRITE_COMMANDS)
+const ALWAYS_FORBIDDEN_FLAGS = new Set(['--accept-unsuitable'])
+
+/** Validates a mutating command. Throws unless writes were explicitly enabled. */
+export function assertWrite(path: readonly string[], args: readonly string[], writesEnabled: boolean): void {
+  if (!writesEnabled) {
+    throw new ScError('SC_FORBIDDEN', t.writesDisabled, { argv: [...path, ...args] })
+  }
+  const key = path.join(' ')
+  if (!WRITE_SET.has(key)) {
+    throw new ScError('SC_FORBIDDEN', `Not on the write allowlist: sc ${key}`, {
+      argv: [...path, ...args],
+    })
+  }
+  for (const arg of args) {
+    const flag = arg.startsWith('--') ? (arg.split('=', 1)[0] as string) : arg
+    if (ALWAYS_FORBIDDEN_FLAGS.has(flag)) {
+      throw new ScError('SC_FORBIDDEN', `Forbidden on every path: ${flag}`, {
+        argv: [...path, ...args],
+      })
+    }
+  }
+}
 
 /**
  * Validates a command before it is spawned.
@@ -174,7 +218,28 @@ export async function runSc(
   options: ScRunOptions = {},
 ): Promise<ScRun> {
   assertReadOnly(path, args)
+  return spawnSc(path, args, options)
+}
 
+/**
+ * The write variant. Same spawn, different gate: `assertWrite` instead of
+ * `assertReadOnly`, and only when the caller proves the user opted in.
+ */
+export async function runScWrite(
+  path: string[],
+  args: string[],
+  writesEnabled: boolean,
+  options: ScRunOptions = {},
+): Promise<ScRun> {
+  assertWrite(path, args, writesEnabled)
+  return spawnSc(path, args, options)
+}
+
+async function spawnSc(
+  path: string[],
+  args: string[],
+  options: ScRunOptions = {},
+): Promise<ScRun> {
   const argv = [...path, ...args]
   const bin = options.bin ?? process.env['SCTUI_SC_BIN'] ?? 'sc'
   const timeoutMs = options.timeoutMs ?? 20_000

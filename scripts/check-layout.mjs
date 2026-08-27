@@ -74,13 +74,23 @@ for (const [columns, rows] of DETAIL_SIZES) {
 for (const rows of [12, 14, 16]) {
   cases.push({ columns: 78, rows, tab: 'holdings', keys: 'jj~', scBin: FAKE_SC })
 }
-// News mode swaps the chart for headlines; the summary line must survive intact.
+// News mode swaps the chart for headlines; the summary line must survive
+// intact. The generous settle is for the matrix under full load: the news
+// fetch only starts after the `n`, and 600 ms flakes when a dozen tsx
+// processes are competing for the machine.
 for (const [columns, rows] of DETAIL_SIZES) {
-  cases.push({ columns, rows, tab: 'holdings', keys: 'jj~n', scBin: FAKE_SC, expect: 'indexfunds' })
+  cases.push({ columns, rows, tab: 'holdings', keys: 'jj~n', scBin: FAKE_SC, expect: 'indexfunds', settle: 3000 })
 }
 // The transaction detail pane, full-width on narrow terminals.
 for (const [columns, rows] of DETAIL_SIZES) {
-  cases.push({ columns, rows, tab: 'transactions', keys: '~', scBin: FAKE_SC, expect: 'ie000bi8ot95' })
+  cases.push({ columns, rows, tab: 'transactions', keys: '~', scBin: FAKE_SC, expect: 'ie000bi8ot95', settle: 3000 })
+}
+// The savings-plan wizard: opt-out screen without --enable-writes, and the
+// demo walkthrough up to the preview step (the budget-sliced overlay).
+cases.push({ columns: 100, rows: 24, tab: 'savings', keys: '+', scBin: FAKE_SC, expect: 'enable-writes', settle: 2000 })
+cases.push({ columns: 78, rows: 16, tab: 'savings', keys: '+', scBin: FAKE_SC, expect: 'enable-writes', settle: 2000 })
+for (const [columns, rows] of [[100, 24], [92, 18], [78, 14]]) {
+  cases.push({ columns, rows, tab: 'savings', keys: '+IE00B4L5Y983~.25~~~.', settle: 3000, ...(rows >= 18 ? { expect: 'nothinghasbeencreated' } : {}) })
 }
 for (const [columns, rows] of SHORT_SIZES) {
   cases.push({ columns, rows, tab: 'overview', keys: '', expect: TILE_LABEL })
@@ -111,10 +121,14 @@ for (const [columns, rows] of SIZES) {
 }
 
 const ANSI = /\[[0-9;?]*[A-Za-z]/g
-async function check({ columns, rows, tab, keys, scBin, env, expect }) {
-  const args = ['scripts/snapshot.tsx', String(columns), String(rows), tab, '--wait=900']
+async function check({ columns, rows, tab, keys, scBin, env, expect, settle }) {
+  // Keyed cases press ⏎ on a row — under full matrix load the fixture's data
+  // can take longer than 900 ms to arrive, and a keypress before the rows
+  // exist is a silent no-op. So interactive cases wait longer before typing.
+  const args = ['scripts/snapshot.tsx', String(columns), String(rows), tab, `--wait=${keys ? 3000 : 900}`]
   if (keys) args.push(`--keys=${keys}`)
   if (scBin) args.push(`--sc-bin=${scBin}`)
+  if (settle) args.push(`--settle=${settle}`)
 
   const { stdout } = await run('npx', ['tsx', ...args], {
     cwd: root,
@@ -139,18 +153,29 @@ async function check({ columns, rows, tab, keys, scBin, env, expect }) {
   ].join('\n')
 }
 
-let failed = 0
 let next = 0
+const suspects = []
 const workers = Array.from({ length: CONCURRENCY }, async () => {
   while (next < cases.length) {
-    const problem = await check(cases[next++])
-    if (problem !== null) {
-      failed += 1
-      console.log(problem)
-    }
+    const candidate = cases[next++]
+    const problem = await check(candidate)
+    if (problem !== null) suspects.push(candidate)
   }
 })
 await Promise.all(workers)
+
+// Interactive cases are timing-sensitive under full parallel load: a keypress
+// that lands before the fixture's rows arrive is a silent no-op. A calm,
+// serial retry separates those flakes from real layout failures — a genuine
+// overlap fails again deterministically.
+let failed = 0
+for (const candidate of suspects) {
+  const problem = await check(candidate)
+  if (problem !== null) {
+    failed += 1
+    console.log(problem)
+  }
+}
 
 console.log(failed === 0 ? `ok — ${cases.length} layouts clean` : `${failed} of ${cases.length} layouts overflow`)
 process.exit(failed === 0 ? 0 : 1)

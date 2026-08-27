@@ -9,8 +9,10 @@ Instrument-Ansicht mit Chart, Quote und News — mit Auto-Refresh.
 
 > **Inoffizielles Projekt.** Nicht mit der Scalable Capital GmbH verbunden.
 > Keine Anlageberatung — Anzeigen können falsch, unvollständig oder verzögert
-> sein. Die aktuelle Version ist strikt **read-only**: sie kann keine Order
-> platzieren und nichts an deinem Depot ändern.
+> sein. Standardmäßig ist sctui strikt **read-only**: es kann keine Order
+> platzieren und nichts an deinem Depot ändern. Einzige Ausnahme, nur per
+> Opt-in (`--enable-writes`): Sparpläne anlegen — mit Broker-Preview und
+> getipptem Bestätigungswort.
 
 ![sctui im Demo-Modus](assets/demo.gif)
 
@@ -66,6 +68,7 @@ oder `SCTUI_LOCALE=de-DE`) sind alle Beschriftungen und Zahlenformate deutsch
 | `⏎` · `→` | Detail öffnen, `esc` schließt |
 | `[` `]` · `t` | Chart-Zeitraum wechseln |
 | `n` | Chart ↔ News im Detail |
+| `+` | Neuer Sparplan (Sparpläne-Tab, nur mit `--enable-writes`) |
 | `r` / `a` | Refresh / Auto-Refresh |
 | `/` | Instrumentensuche |
 | `d` | Roh-JSON der aktuellen Ansicht |
@@ -73,7 +76,7 @@ oder `SCTUI_LOCALE=de-DE`) sind alle Beschriftungen und Zahlenformate deutsch
 
 ## Read-only — und überprüfbar
 
-Die aktuelle Version kann keinen mutierenden `sc`-Befehl ausführen: exakte
+Ohne `--enable-writes` kann sctui keinen mutierenden `sc`-Befehl ausführen: exakte
 Kommando-Allowlist plus Sperrliste für Bestätigungs-Flags, geprüft vor jedem
 Prozessstart ([`src/sc/exec.ts`](src/sc/exec.ts)), abgesichert durch
 Unit-Tests und ein CI-Gate. Wie du das selbst in fünf Minuten auditierst,

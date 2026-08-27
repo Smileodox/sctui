@@ -11,10 +11,16 @@ taking it on faith.
   Everything goes through the official
   [`sc` CLI](https://github.com/ScalableCapital/scalable-cli), which you
   install and log into yourself. Tokens are managed by `sc`, not by sctui.
-- The current release is **read-only by construction**: it only ever runs
+- By default sctui is **read-only by construction**: it only ever runs
   read-only `sc` commands. There is no code path that places, confirms or
   cancels an order, and none for "harmless" writes like watchlist edits
   either.
+- The **single write feature** — creating savings plans — exists only behind
+  `--enable-writes`, on a second exact-match allowlist holding exactly one
+  command. The CLI itself forces it through a preview whose confirmation id
+  must be echoed back, so nothing can be created that was not shown first.
+  `--accept-unsuitable` (bypassing the broker's appropriateness check) is
+  forbidden on every path.
 - sctui sends no telemetry, writes nothing to disk and opens no network
   connections. Its only effect on the outside world is invoking the `sc`
   binary.
@@ -45,9 +51,11 @@ The guarantee hangs on exactly one file. To check it:
    it only appears as a value.
 
 4. **Before every spawn.** `runSc()` calls `assertReadOnly()` as its first
-   step. [`tests/exec.test.ts`](tests/exec.test.ts) proves all of this on
-   every CI run: path exactness, case sensitivity, flag forms, and that the
-   search input can never be interpreted as a flag.
+   step; the write variant calls `assertWrite()`, which additionally requires
+   the runtime opt-in. [`tests/exec.test.ts`](tests/exec.test.ts) proves all
+   of this on every CI run: path exactness on both allowlists, case
+   sensitivity, flag forms, that the write gate stays closed without the
+   opt-in, and that the search input can never be interpreted as a flag.
 
 ## Second layer: `--local-read-only`
 
@@ -59,17 +67,17 @@ sc login --local-read-only
 ```
 
 The `sc` binary then refuses any mutation — regardless of what a program
-above it asks for. sctui recommends this login, and its current version never
-issues anything such a session would refuse. The allowlist is the second line
-of defence, not the only one.
+above it asks for. sctui recommends this login for read-only use; note that
+the savings-plan wizard then cannot work either, because the binary refuses
+the write. The allowlist is the second line of defence, not the only one.
 
 ## Scope of the guarantee
 
-"Read-only" describes the release you are running, enforced by the mechanisms
-above and their tests — it is not a promise about all future versions. If
-write features ever land, they will be opt-in, separately guarded, and
-released clearly as such; the audit trail above will make any such change
-visible in one file.
+"Read-only by default" describes the release you are running, enforced by
+the mechanisms above and their tests. The first write feature (savings-plan
+creation, v0.4) landed exactly as this section always promised: opt-in via
+`--enable-writes`, on a separate one-entry allowlist, previewed by the broker,
+and visible in the same audit trail — one file, `src/sc/exec.ts`.
 
 ## Limits
 

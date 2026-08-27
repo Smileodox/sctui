@@ -45,7 +45,8 @@ Object.assign(stdin, {
   unref: () => stdin,
 })
 
-const client = scBin === undefined ? new DemoClient() : new ScClient({ bin: scBin })
+const enableWrites = args.includes('--enable-writes')
+const client = scBin === undefined ? new DemoClient() : new ScClient({ bin: scBin, enableWrites })
 
 const instance = render(<App client={client} autoRefreshSeconds={null} initialTab={tab} />, {
   stdout,
